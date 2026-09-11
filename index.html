@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>魔卡少女樱 · 库洛牌 × 小樱牌 展览</title>
+  <link rel="icon" href="assets/SHope.jpeg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="clow">
+
+  <!-- 背景星点 -->
+  <div id="bg-dots" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <!-- ============ 头部 ============ -->
+    <header class="hero">
+      <div class="hero-ring" aria-hidden="true"></div>
+      <p class="en-title">Cardcaptor Sakura</p>
+      <h1>魔卡少女樱</h1>
+      <p class="tagline">库洛牌 与 小樱牌 · 全卡面展览 —— 点击卡牌可翻面，点击 ⓘ 查看详情</p>
+
+      <div class="mode-switch" id="mode-switch" data-active="clow" role="tablist" aria-label="卡组切换">
+        <span class="indicator" aria-hidden="true"></span>
+        <button class="mode-btn active" data-mode="clow" role="tab">库洛牌</button>
+        <button class="mode-btn" data-mode="sakura" role="tab">小樱牌</button>
+      </div>
+      <div>
+        <button id="transform-all" class="magic-btn">✦ 封印解除 · 全部转化为小樱牌</button>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- ============ 特别篇 · 希望之牌 ============ -->
+      <section aria-label="希望之牌合成仪式">
+        <h2 class="sec-title">✦ 特别篇 · 希望之牌 ✦</h2>
+        <p class="sec-sub">选中「无」与「爱」两张牌，见证最重要的「希望」之牌诞生</p>
+
+        <div class="ritual" id="ritual">
+          <div class="ritual-cards" id="ritual-cards"></div>
+
+          <div class="ritual-mid">
+            <button id="synthesize" class="magic-btn" disabled>开始合成</button>
+            <button id="replay" class="replay-btn hidden">再看一次 ✦</button>
+          </div>
+
+          <div class="hope-stage" id="hope-stage">
+            <div class="hope-locked">
+              <span class="hope-q">？</span>
+              <span class="hope-lock-text">集齐「无」与「爱」<br>即可合成希望之牌</span>
+            </div>
+            <div class="stage-ring" aria-hidden="true"></div>
+            <div class="hope-card" id="hope-card">
+              <button class="flip-zone" id="hope-flip" aria-label="翻面：希望">
+                <div class="flip-inner">
+                  <div class="flip-face front"><img src="assets/SHope.jpeg" alt="希望"></div>
+                  <div class="flip-face back"><img src="assets/SakuraCardSideB.jpeg" alt="卡背"></div>
+                </div>
+              </button>
+              <div class="hope-caption">
+                <h3>希望 <span>The Hope</span></h3>
+                <p>「无」与「爱」合而为一<br>由最深的感情诞生的牌</p>
+                <span class="hope-tag">✦ 最重要的一张 ✦</span>
+              </div>
+              <button class="ritual-detail" id="hope-detail" title="查看详情" aria-label="查看详情：希望">ⓘ</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 卡牌图鉴 ============ -->
+      <section aria-label="卡牌图鉴">
+        <h2 class="sec-title" id="gallery-title">库洛牌 · 全 52 张</h2>
+        <p class="sec-sub">两套卡牌一一对应 · 点击上方按钮，看转化魔法卷过整面图鉴</p>
+
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="搜索卡牌（如：风 / Windy）…">
+          <span id="count">52 / 52 张 · 库洛牌</span>
+        </div>
+
+        <div id="grid" class="grid"></div>
+        <p id="empty" class="empty hidden">没有找到匹配的卡牌 ✦</p>
+      </section>
+
+    </main>
+
+    <footer>
+      <p>魔卡少女樱 · Cardcaptor Sakura © CLAMP · 私人收藏展示</p>
+      <p class="accent">无 与 爱，诞生希望 ✦</p>
+    </footer>
+  </div>
+
+  <!-- ============ 详情弹窗 ============ -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="卡牌详情">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-body">
+      <button class="modal-close" id="modal-close" aria-label="关闭">✕</button>
+      <div class="modal-card">
+        <div class="flip-inner">
+          <div class="flip-face front"><img id="modal-face" alt="卡面"></div>
+          <div class="flip-face back"><img id="modal-back" alt="卡背"></div>
+        </div>
+        <div class="magic-overlay" aria-hidden="true"></div>
+      </div>
+      <div class="modal-info">
+        <h3 id="modal-name">风</h3>
+        <p class="modal-en" id="modal-en">The Windy</p>
+        <p class="modal-desc" id="modal-desc"></p>
+        <div class="modal-actions">
+          <button id="modal-flip" class="btn ghost">翻面</button>
+          <button id="modal-morph" class="btn primary">✦ 觉醒 · 转化为小樱牌</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
