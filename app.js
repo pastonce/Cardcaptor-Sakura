@@ -5,10 +5,11 @@
 'use strict';
 
 /* ---------- 常量 ---------- */
-const CLOW_DIR   = 'assets/clow/';
-const SAKURA_DIR = 'assets/sakura/';
-const C_BACK     = 'assets/ClowCardSideB.jpeg';   // 库洛牌统一卡背
-const S_BACK     = 'assets/SakuraCardSideB.jpeg'; // 小樱牌统一卡背
+const ASSETS     = 'asserts/';                       // 所有卡图统一放在 asserts 目录下
+const CLOW_DIR   = ASSETS + 'clow/';
+const SAKURA_DIR = ASSETS + 'sakura/';
+const C_BACK     = ASSETS + 'ClowCardSideB.jpeg';    // 库洛牌统一卡背
+const S_BACK     = ASSETS + 'SakuraCardSideB.jpeg';  // 小樱牌统一卡背
 
 /* 魔法阵 SVG（头部背景 / 转化仪式 / 合成仪式 共用） */
 const MAGIC_RING = `
@@ -23,8 +24,7 @@ const MAGIC_RING = `
   </g>
 </svg>`;
 
-/* ---------- 卡牌数据 ----------
-   52 组一一对应的卡牌，按动画中的收服顺序排列 */
+/* ---------- 52 张一一对应的卡牌（按动画中的收服顺序） ---------- */
 const CARDS = [
   { cn: '风', en: 'Windy' },   { cn: '翔', en: 'Fly' },      { cn: '影', en: 'Shadow' },
   { cn: '水', en: 'Watery' },  { cn: '雨', en: 'Rain' },     { cn: '树', en: 'Wood' },
@@ -46,55 +46,142 @@ const CARDS = [
   { cn: '静', en: 'Silent' },
 ];
 
-/* 三张特殊牌：无 + 爱 = 希望 */
+/* ---------- 各牌「象征」释义 ----------
+   资料整理自萌娘百科《库洛牌》条目（CC BY-NC-SA），按英文名索引 */
+const SYMBOLS = {
+  Windy:     '前进、充实、期待的暗示',
+  Fly:       '挑战飞跃的机会',
+  Shadow:    '未知的部分，问题的发生与消除',
+  Watery:    '协调性，打开他人心扉的力量',
+  Rain:      '最后终究会好转',
+  Wood:      '象征各自的成长与发展',
+  Jump:      '实力发挥、最佳状态',
+  Illusion:  '想要从现实中逃离的欲望',
+  Thunder:   '若能不迷失自己，便能有幸运的发展',
+  Sword:     '真实的探求、报偿，有时是破坏力',
+  Flower:    '成果、报酬、目标达标率很高的时期',
+  Shield:    '保护，为了保持调和的防卫手段',
+  Power:     '愿望的实现、扩展',
+  Mist:      '判定事态，决定出方向',
+  Storm:     '激烈的感情，欲求不满的消解',
+  Float:     '由束缚中解放、自由',
+  Erase:     '运气的停滞，等一下的警告',
+  Glow:      '幸运的预兆',
+  Move:      '注意浮躁的行动与发言',
+  Fight:     '大转机的前兆',
+  Loop:      '连结、更上一层楼的机会',
+  Sleep:     '休息、平稳的心境',
+  Song:      '欢喜、调和、治疗的力量',
+  Little:    '虽然小,却也是有意义的蜕变期',
+  Mirror:    '深切看清自己的时期',
+  Maze:      '丧失自信、混乱',
+  Return:    '败者复活，永不放弃',
+  Shot:      '锁定目标',
+  Sweet:     '新恋情、受欢迎、依赖心的表现',
+  Dash:      '以瞬间爆发力得到胜利，与自己的战斗',
+  Big:       '极大的可能性与能力，知识欲的提高',
+  Create:    '丰富的感受性感受力的开花结果',
+  Change:    '心情的切换、浪费',
+  Freeze:    '基础能力的成型，我行我素也OK',
+  Firey:     '强烈的信条信念，突破难关',
+  Arrow:     '能量的高涨、积极性',
+  Snow:      '崭新的起点、和平、纯净',
+  Voice:     '想成为朋友，和睦相处的心情',
+  Lock:      '智能、英知。对真实、内心的察觉',
+  Cloud:     '你的决断将造成决定性的结果',
+  Dream:     '了解自己的机会，潜在意识的发展期',
+  Sand:      '不要害怕改变，加以挑战',
+  Dark:      '照旧、顺着自然的发展前进',
+  Light:     '由自己来主导对未来的展望',
+  Time:      '各种体验的磨练、自立',
+  Twin:      '最佳搭挡的出现',
+  Earthy:    '生命的发源地，努力与包容性的象征',
+  Bubbles:   '感情的净化，由恶性循环脱离的时机',
+  Wave:      '柔软的姿态为你带来好运气',
+  Libra:     '对人生、行动、思考的比重调整',
+  Through:   '没有预期到的事态的好转',
+  Silent:    '思虑深远、充电期',
+};
+
+/* ---------- 三张特殊牌 ----------
+   无 与 爱 默认藏在图鉴之外，只有在对应当前卡组中「精确搜索」才会现身。
+   两张都拖进卡槽 → 合成最重要的「希望」。 */
 const SPECIAL = {
-  nothing: { cn: '无',   en: 'The Nothing', img: 'assets/CNothing.jpeg', side: 'clow',
-             desc: '尚未写上名字的库洛牌，安静地等待着一个名字。' },
-  unknown: { cn: '爱', en: 'The Unknown', img: 'assets/SUnknown.jpeg', side: 'sakura',
-             desc: '由小樱的泪水与心意孕育而生的爱之牌。' },
-  hope:    { cn: '希望', en: 'The Hope',    img: 'assets/SHope.jpeg',    side: 'sakura',
-             desc: '「无」与「爱」合而为一，由最深的感情诞生的、最重要的一张牌。' },
+  nothing: {
+    key: 'nothing', cn: '无', en: 'The Nothing', img: ASSETS + 'CNothing.jpeg', side: 'clow',
+    frame: 'clow',                                  // 描边固定为库洛黄
+    terms: ['无', 'the nothing', 'nothing'],
+    desc: '尚未写上名字的库洛牌，安静地等待着被唤醒。',
+  },
+  love: {
+    key: 'love', cn: '爱', en: 'The Love', img: ASSETS + 'SUnknown.jpeg', side: 'sakura',
+    frame: 'sakura',                                // 描边固定为小樱粉
+    terms: ['爱', '心', 'the love', 'the heart', 'love', 'heart'],
+    desc: '由小樱的心意与泪水孕育而生的无名之牌。',
+  },
+  hope: {
+    key: 'hope', cn: '希望', en: 'The Hope', img: ASSETS + 'SHope.jpeg', side: 'sakura',
+    frame: 'hope',                                  // 描边固定为希望红
+    desc: '「无」与「爱」合而为一，由最深的感情诞生的、最重要的一张牌。',
+  },
+};
+const SPECIAL_ORDER = ['nothing', 'love'];   // 需要凑齐的两张
+
+/* 合成前后，希望牌的两种呈现：未诞生时它只是一张「未知」的牌 */
+const HOPE_FACE = {
+  locked: {
+    img: ASSETS + 'SHope-uncreated.jpeg', cn: '◼◼', en: 'The ◼◼◼◼',
+    desc: '◼◼◼◼◼◼◼◼◼◼', tag: '✦ ◼◼◼◼◼◼ ✦',
+    title: '✦ 特别篇 · ◼◼之牌 ✦', motto: '◼◼',
+  },
+  revealed: {
+    img: ASSETS + 'SHope.jpeg', cn: '希望', en: 'The Hope',
+    desc: '由最深的感情诞生之牌', tag: '✦ 最重要的一张 ✦',
+    title: '✦ 特别篇 · 希望之牌 ✦', motto: '希望',
+  },
 };
 
 /* ---------- 工具 ---------- */
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
+const modeName = () => (mode === 'sakura' ? '小樱牌' : '库洛牌');
 
 function stored(k) { try { return localStorage.getItem('ccs_' + k); } catch (e) { return null; } }
 function save(k, v)  { try { localStorage.setItem('ccs_' + k, v); } catch (e) {} }
 
 /* ---------- 状态 ---------- */
-let mode        = stored('mode') === 'sakura' ? 'sakura' : 'clow'; // 当前卡组
-let synthesized = stored('hope') === '1';   // 希望之牌是否已合成（跨刷新记忆）
-let busy        = false;                    // 全局转化动画进行中
-let ritualOn    = false;                    // 合成仪式播放中
+let mode        = stored('mode') === 'sakura' ? 'sakura' : 'clow';  // 当前卡组
+let synthesized = false;    // 希望之牌是否已合成 —— 刻意不持久化，每次进入/刷新都从未知态开始
+let busy        = false;                     // 整面转化动画进行中
+let combining   = false;                     // 合成动画进行中
+let suppressClickUntil = 0;                  // 拖拽结束后抑制误触发的点击
 
-const gridEl   = $('#grid');
-const searchEl = $('#search');
-const countEl  = $('#count');
-const emptyEl  = $('#empty');
-const ritualEl = $('#ritual');
+/* ---------- 元素 ---------- */
+const gridEl    = $('#grid');
+const searchEl  = $('#search');
+const countEl   = $('#count');
+const emptyEl   = $('#empty');
+const toastEl   = $('#toast');
 const hopeStage = $('#hope-stage');
-let selected = new Set();                   // 已选中的仪式卡
 
 /* ---------- 详情数据 ---------- */
-function pairData(card, i) {
+function specialData(sp) {
   return {
-    cn: card.cn,
-    en: 'The ' + card.en,
-    morphable: true,
+    cn: sp.cn, en: sp.en, morphable: false, frame: sp.frame,
+    clowSrc:   sp.side === 'clow'   ? sp.img : null,
+    sakuraSrc: sp.side === 'sakura' ? sp.img : null,
+    descClow: sp.desc, descSakura: sp.desc,
+    sym: '',                          // 三张特殊牌不在该资料的收录范围内
+  };
+}
+function pairData(card) {
+  return {
+    cn: card.cn, en: 'The ' + card.en, morphable: true,
     clowSrc:   CLOW_DIR + 'C' + card.en + '.jpeg',
     sakuraSrc: SAKURA_DIR + 'S' + card.en + '.jpeg',
     descClow:   '封印着古老力量的库洛牌，安静地沉睡着。',
     descSakura: '由小樱重新唤醒的小樱牌，焕发着新的光芒。',
-  };
-}
-function specialData(sp) {
-  return {
-    cn: sp.cn, en: sp.en, morphable: false,
-    clowSrc:   sp.side === 'clow'   ? sp.img : null,
-    sakuraSrc: sp.side === 'sakura' ? sp.img : null,
-    descClow: sp.desc, descSakura: sp.desc,
+    sym: SYMBOLS[card.en] || '',
   };
 }
 
@@ -103,17 +190,21 @@ function specialData(sp) {
    ============================================================ */
 function buildGrid() {
   const frag = document.createDocumentFragment();
+
   CARDS.forEach((card, i) => {
+    const clowSrc   = CLOW_DIR + 'C' + card.en + '.jpeg';
+    const sakuraSrc = SAKURA_DIR + 'S' + card.en + '.jpeg';
     const el = document.createElement('article');
     el.className = 'card';
     el._card = card;
-    const clowSrc   = CLOW_DIR + 'C' + card.en + '.jpeg';
-    const sakuraSrc = SAKURA_DIR + 'S' + card.en + '.jpeg';
+    el._cn = card.cn;
+    el._en = 'The ' + card.en;
+    el._special = null;
     el.innerHTML = `
       <button class="flip-zone" aria-label="翻面：${card.cn}（The ${card.en}）">
         <div class="flip-inner">
           <div class="flip-face front">
-            <img src="${clowSrc}" data-clow="${clowSrc}" data-sakura="${sakuraSrc}" alt="${card.cn}" loading="lazy">
+            <img src="${mode === 'sakura' ? sakuraSrc : clowSrc}" data-clow="${clowSrc}" data-sakura="${sakuraSrc}" alt="${card.cn}" loading="lazy">
           </div>
           <div class="flip-face back">
             <img src="${mode === 'sakura' ? S_BACK : C_BACK}" alt="卡背" loading="lazy">
@@ -126,10 +217,49 @@ function buildGrid() {
         <span class="en">The ${card.en}</span>
         <button class="detail-btn" title="查看详情" aria-label="查看详情：${card.cn}">ⓘ</button>
       </div>`;
-    el.querySelector('.flip-zone').addEventListener('click', () => el.classList.toggle('flipped'));
-    el.querySelector('.detail-btn').addEventListener('click', () => openModal(pairData(card, i)));
+    const zone = el.querySelector('.flip-zone');
+    zone.addEventListener('click', () => {
+      if (performance.now() < suppressClickUntil) return;
+      el.classList.toggle('flipped');
+    });
+    el.querySelector('.detail-btn').addEventListener('click', () => openModal(pairData(card)));
+    attachDrag(zone);
     frag.appendChild(el);
   });
+
+  /* 两张隐藏之牌：默认不显示，只在搜索时现身 */
+  SPECIAL_ORDER.forEach(key => {
+    const sp = SPECIAL[key];
+    const el = document.createElement('article');
+    el.className = 'card special hidden framed frame-' + sp.frame;   // 描边色随牌固定，不随主题切换
+    el._card = null;
+    el._cn = sp.cn;
+    el._en = sp.en;
+    el._special = key;
+    el._frame = sp.frame;
+    el.innerHTML = `
+      <button class="flip-zone" aria-label="翻面：${sp.cn}（${sp.en}）">
+        <div class="flip-inner">
+          <div class="flip-face front"><img src="${sp.img}" alt="${sp.cn}"></div>
+          <div class="flip-face back"><img src="${sp.side === 'clow' ? C_BACK : S_BACK}" alt="卡背"></div>
+        </div>
+        <span class="card-no">✦</span>
+      </button>
+      <div class="card-meta">
+        <span class="cn">${sp.cn}</span>
+        <span class="en">${sp.en}</span>
+        <button class="detail-btn" title="查看详情" aria-label="查看详情：${sp.cn}">ⓘ</button>
+      </div>`;
+    const zone = el.querySelector('.flip-zone');
+    zone.addEventListener('click', () => {
+      if (performance.now() < suppressClickUntil) return;
+      el.classList.toggle('flipped');
+    });
+    el.querySelector('.detail-btn').addEventListener('click', () => openModal(specialData(sp)));
+    attachDrag(zone);
+    frag.appendChild(el);
+  });
+
   gridEl.appendChild(frag);
 }
 
@@ -150,7 +280,7 @@ function morphAll(target) {
   updateModeUI();
 
   const toSakura = target === 'sakura';
-  const items    = $$('#grid .card');
+  const items    = $$('#grid .card').filter(el => !el._special);
   const visible  = items.filter(el => !el.classList.contains('hidden'));
   items.forEach(el => { if (el.classList.contains('hidden')) swapCardImages(el, toSakura); });
 
@@ -169,19 +299,36 @@ function morphAll(target) {
 }
 
 function updateModeUI() {
-  $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  $('#mode-switch').dataset.active = mode;
-  $('#gallery-title').textContent = (mode === 'sakura' ? '小樱牌' : '库洛牌') + ' · 全 52 张';
+  $('#gallery-title').textContent = modeName() + ' · 全 52 张';
   $('#transform-all').textContent = mode === 'sakura'
-    ? '✦ 逆转 · 全部恢复为库洛牌'
-    : '✦ 封印解除 · 全部转化为小樱牌';
-  applyFilter();
+    ? '✦ 封印逆转 · 恢复为库洛牌 ✦'
+    : '✦ 封印解除 · 转化为小樱牌 ✦';
+  applyFilter();   // 卡组变了，隐藏之牌的可见性要重新判定
+}
+
+/* 精确搜索命中哪张隐藏之牌（且必须处在它所属的卡组中） */
+function matchedSpecial(q) {
+  if (!q) return null;
+  for (const key of SPECIAL_ORDER) {
+    const sp = SPECIAL[key];
+    if (sp.side !== mode) continue;
+    if (sp.terms.indexOf(q) !== -1) return key;
+  }
+  return null;
 }
 
 function applyFilter() {
   const q = searchEl.value.trim().toLowerCase();
+  const hidden = matchedSpecial(q);
   let n = 0;
+
   gridEl.querySelectorAll('.card').forEach(el => {
+    if (el._special) {                       // 隐藏之牌：只有被搜索命中才现身
+      const hit = el._special === hidden;
+      el.classList.toggle('hidden', !hit);
+      if (hit) n++;
+      return;
+    }
     const c = el._card;
     const hit = !q || c.cn.includes(q)
       || c.en.toLowerCase().includes(q)
@@ -189,8 +336,260 @@ function applyFilter() {
     el.classList.toggle('hidden', !hit);
     if (hit) n++;
   });
+
+  const total = 52 + (hidden ? 1 : 0);
+  countEl.textContent = `${n} / ${total} 张 · ${modeName()}`;
+  countEl.classList.toggle('revealed', !!hidden);
   emptyEl.classList.toggle('hidden', n > 0);
-  countEl.textContent = `${n} / 52 张 · ${mode === 'sakura' ? '小樱牌' : '库洛牌'}`;
+}
+
+/* ============================================================
+   拖拽：任意卡牌都可拖到合成台的卡槽
+   ============================================================ */
+const DRAG_THRESHOLD = 8;
+let pending = null;   // 按下但还没开始拖
+let active  = null;   // 正在拖
+
+function payloadOf(cardEl) {
+  const front = cardEl.querySelector('.flip-face.front img');
+  return { cn: cardEl._cn, en: cardEl._en, img: front.getAttribute('src'),
+           special: cardEl._special, frame: cardEl._frame || null };
+}
+
+function attachDrag(zoneEl) {
+  zoneEl.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest('.detail-btn')) return;
+    const cardEl = zoneEl.closest('.card');
+    if (!cardEl) return;
+    pending = { cardEl, x: e.clientX, y: e.clientY,
+                rect: zoneEl.getBoundingClientRect(), payload: payloadOf(cardEl) };
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+  });
+}
+
+function onPointerMove(e) {
+  if (!pending) return;
+  if (!active) {
+    if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < DRAG_THRESHOLD) return;
+    startDrag();
+  }
+  e.preventDefault();
+  moveGhost(e.clientX, e.clientY);
+  autoScroll(e.clientY);
+  hoverSlot(e.clientX, e.clientY);
+}
+
+function startDrag() {
+  const { payload, rect, x, y } = pending;
+  const ghost = document.createElement('div');
+  ghost.className = 'drag-ghost' + (payload.frame ? ' frame-' + payload.frame : '');
+  ghost.style.width  = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.innerHTML = `<img src="${payload.img}" alt="">`;
+  document.body.appendChild(ghost);
+
+  active = { payload, ghost, offX: x - rect.left, offY: y - rect.top, srcEl: pending.cardEl };
+  active.srcEl.classList.add('drag-src');
+  document.body.classList.add('dragging');
+  moveGhost(x, y);
+}
+
+function moveGhost(x, y) {
+  active.ghost.style.transform =
+    `translate3d(${x - active.offX}px, ${y - active.offY}px, 0) rotate(3deg) scale(1.05)`;
+}
+
+/* 拖到视口上下边缘时自动滚动，方便从图鉴拖到页面下方 */
+function autoScroll(y) {
+  const margin = 90, speed = 15;
+  if (y < margin) {
+    window.scrollBy(0, -speed * (1 - y / margin));
+  } else if (y > window.innerHeight - margin) {
+    window.scrollBy(0, speed * (1 - (window.innerHeight - y) / margin));
+  }
+}
+
+function slotAt(x, y) {
+  const el = document.elementFromPoint(x, y);   // 拖拽幽灵已设 pointer-events:none
+  return el ? el.closest('.slot') : null;
+}
+
+function hoverSlot(x, y) {
+  const target = slotAt(x, y);
+  $$('#drop-zone .slot').forEach(s => s.classList.toggle('drag-over', s === target));
+}
+
+function onPointerUp(e) {
+  if (active) {
+    const slot = slotAt(e.clientX, e.clientY);
+    if (slot) {
+      active.ghost.remove();
+      handleDrop(active.payload, slot);
+    } else {
+      returnGhost();
+    }
+    suppressClickUntil = performance.now() + 350;
+  }
+  cleanupDrag();
+}
+
+function onPointerCancel() {
+  if (active) returnGhost();
+  cleanupDrag();
+}
+
+function returnGhost() {
+  const { ghost } = active;
+  const r = active.srcEl.getBoundingClientRect();
+  ghost.style.transform = `translate3d(${r.left}px, ${r.top}px, 0) scale(.9)`;
+  ghost.classList.add('returning');
+  setTimeout(() => ghost.remove(), 320);
+}
+
+function cleanupDrag() {
+  window.removeEventListener('pointermove', onPointerMove);
+  window.removeEventListener('pointerup', onPointerUp);
+  window.removeEventListener('pointercancel', onPointerCancel);
+  $$('#drop-zone .slot').forEach(s => s.classList.remove('drag-over'));
+  if (active) {
+    active.srcEl.classList.remove('drag-src');
+    document.body.classList.remove('dragging');
+  }
+  pending = null;
+  active = null;
+}
+
+/* ============================================================
+   合成台：两张牌都放对 → 希望诞生
+   ============================================================ */
+function placedKeys() {
+  return $$('#drop-zone .slot')
+    .filter(s => s.dataset.filled === '1')
+    .map(s => s._payload.special);
+}
+
+function handleDrop(payload, slotEl) {
+  if (combining) return;
+  if (slotEl.dataset.filled === '1') { rejectSlot(slotEl, '这个卡槽已经有牌了'); return; }
+  if (!payload.special)              { rejectSlot(slotEl, '这不是仪式需要的牌…'); return; }
+  if (placedKeys().indexOf(payload.special) !== -1) { rejectSlot(slotEl, '这张牌已经放上去了'); return; }
+
+  placeCard(slotEl, payload);
+  slotEl.classList.add('accepted');
+  setTimeout(() => slotEl.classList.remove('accepted'), 600);
+
+  const r = slotEl.getBoundingClientRect();
+  burst(r.left + r.width / 2, r.top + r.height / 2, { count: 14 });
+
+  if (placedKeys().length === 2) combine();   // 两张都放对，自动开始合成
+}
+
+function rejectSlot(slotEl, msg) {
+  slotEl.classList.add('reject');
+  setTimeout(() => slotEl.classList.remove('reject'), 520);
+  toast(msg);
+}
+
+function placeCard(slotEl, payload) {
+  slotEl.dataset.filled = '1';
+  slotEl.classList.add('filled');
+  slotEl._payload = payload;
+  const div = document.createElement('div');
+  div.className = 'slot-card' + (payload.frame ? ' frame-' + payload.frame : '');   // 落槽后保留描边色
+  div.innerHTML = `<img src="${payload.img}" alt="${payload.cn}">`;
+  slotEl.appendChild(div);
+}
+
+function clearSlots() {
+  $$('#drop-zone .slot').forEach(s => {
+    const card = s.querySelector('.slot-card');
+    if (card) card.remove();
+    delete s.dataset.filled;
+    delete s._payload;
+    s.classList.remove('filled', 'accepted');
+  });
+}
+
+/* 合成动画：卡槽中的两张牌飞向希望之牌 → 闪光 → 希望现身 */
+function combine() {
+  combining = true;
+  const hopeCard = $('#hope-card');
+  const hr = hopeCard.getBoundingClientRect();
+  const cx = hr.left + hr.width / 2;
+  const cy = hr.top + hr.height / 2;
+
+  $$('#drop-zone .slot-card').forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    setTimeout(() => {
+      el.style.transform =
+        `translate(${cx - (r.left + r.width / 2)}px, ${cy - (r.top + r.height / 2)}px)`
+        + ` scale(.25) rotate(${i ? 24 : -24}deg)`;
+      el.style.opacity = '0';
+    }, 260 + i * 190);
+  });
+
+  setTimeout(() => {
+    burst(cx, cy, { count: 38, hearts: true });
+    flashScreen();
+  }, 900);
+
+  setTimeout(() => {
+    clearSlots();
+    // try/finally：哪怕这里出任何差错，也不能把 combining 卡在 true 上让拖牌彻底失效
+    try {
+      if (!synthesized) {
+        synthesized = true;
+        revealHope();
+      } else {
+        pulseHope();     // 已合成过：再演一次合成，希望之牌亮起回应
+      }
+      applyHopeState();
+      hopeStage.classList.add('burst');
+      setTimeout(() => hopeStage.classList.remove('burst'), 1000);
+    } finally {
+      combining = false;
+    }
+  }, 1150);
+}
+
+function revealHope() { hopeStage.classList.add('revealed'); }
+
+function pulseHope() {
+  const el = $('#hope-card');
+  el.classList.remove('pulse');
+  void el.offsetWidth;      // 重排以便重复触发动画
+  el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 1100);
+}
+
+/* 按「是否已合成」刷新希望牌的一切：
+   未合成 → 换成未诞生图并压暗、名字叫「未知 / The Null」、不可翻面、不可查看详情 */
+function applyHopeState() {
+  const s = synthesized ? HOPE_FACE.revealed : HOPE_FACE.locked;
+  const face = $('#hope-face');
+  face.src = s.img;
+  face.alt = s.cn;
+  $('#hope-name').textContent = s.cn;
+  $('#hope-en').textContent   = s.en;
+  $('#hope-desc').textContent = s.desc;
+  $('#hope-tag').textContent  = s.tag;
+  $('#special-title').textContent = s.title;   // 段落标题也跟着揭晓
+  $('#motto-name').textContent    = s.motto;   // 页脚的同名关键字一并遮蔽
+  $('#hope-card').classList.toggle('locked', !synthesized);
+  $('#hope-flip').disabled = !synthesized;
+  $('#hope-flip').setAttribute('aria-label', synthesized ? '翻面：希望' : '它还未诞生');
+  $('#hope-detail').classList.toggle('hidden', !synthesized);
+}
+
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
 }
 
 /* ============================================================
@@ -198,23 +597,38 @@ function applyFilter() {
    ============================================================ */
 const modalEl = $('#modal');
 let modalData = null;
-let modalSide = 'clow';   // 当前弹窗展示的是哪一面的卡
+let modalSide = 'clow';
 
 function openModal(data) {
   modalData = data;
   modalSide = data.sakuraSrc && (!data.clowSrc || mode === 'sakura') ? 'sakura' : 'clow';
-  const cardEl = modalEl.querySelector('.modal-card');
-  cardEl.classList.remove('flipped', 'morphing');
+
+  // 特征色挂在 .modal-body 上，卡面与文字都能继承到 --frame
+  const bodyEl = modalEl.querySelector('.modal-body');
+  bodyEl.classList.remove('frame-clow', 'frame-sakura', 'frame-hope');
+  bodyEl.classList.toggle('is-special', !!data.frame);
+  if (data.frame) bodyEl.classList.add('frame-' + data.frame);
+
+  modalEl.querySelector('.modal-card').classList.remove('flipped', 'morphing');
   $('#modal-name').textContent = data.cn;
   $('#modal-en').textContent   = data.en;
-  $('#modal-face').src = modalSide === 'sakura' ? data.sakuraSrc : data.clowSrc;
-  $('#modal-back').src = modalSide === 'sakura' ? S_BACK : C_BACK;
-  $('#modal-desc').textContent = modalSide === 'sakura' ? data.descSakura : data.descClow;
+  // 「象征」释义：只有 52 张普通牌有，特殊牌整块隐藏
+  $('#modal-sym').textContent  = data.sym || '';
+  $('#modal-sym-box').classList.toggle('hidden', !data.sym);
+  applyModalSide();
   $('#modal-morph').classList.toggle('hidden', !data.morphable);
-  updateMorphBtn();
   modalEl.classList.remove('hidden');
   document.body.classList.add('no-scroll');
   $('#modal-close').focus();
+}
+
+/* 按当前展示的是库洛面还是小樱面，刷新弹窗里的图与文字 */
+function applyModalSide() {
+  modalEl.querySelector('.modal-body').dataset.side = modalSide;
+  $('#modal-face').src = modalSide === 'sakura' ? modalData.sakuraSrc : modalData.clowSrc;
+  $('#modal-back').src = modalSide === 'sakura' ? S_BACK : C_BACK;
+  $('#modal-desc').textContent = modalSide === 'sakura' ? modalData.descSakura : modalData.descClow;
+  updateMorphBtn();
 }
 
 function closeModal() {
@@ -225,8 +639,8 @@ function closeModal() {
 function updateMorphBtn() {
   if (!modalData || !modalData.morphable) return;
   $('#modal-morph').textContent = modalSide === 'sakura'
-    ? '✦ 逆转 · 恢复为库洛牌'
-    : '✦ 觉醒 · 转化为小樱牌';
+    ? '✦ 封印逆转 · 恢复为库洛牌 ✦'
+    : '✦ 封印解除 · 转化为小樱牌 ✦';
 }
 
 function morphModal() {
@@ -238,118 +652,9 @@ function morphModal() {
   cardEl.classList.add('morphing');
   setTimeout(() => {
     modalSide = toSakura ? 'sakura' : 'clow';
-    $('#modal-face').src = modalSide === 'sakura' ? modalData.sakuraSrc : modalData.clowSrc;
-    $('#modal-back').src = modalSide === 'sakura' ? S_BACK : C_BACK;
-    $('#modal-desc').textContent = modalSide === 'sakura' ? modalData.descSakura : modalData.descClow;
+    applyModalSide();
     cardEl.classList.remove('morphing');
-    updateMorphBtn();
   }, 420);
-}
-
-/* ============================================================
-   特别篇 · 希望之牌合成仪式
-   ============================================================ */
-function buildRitual() {
-  const wrap = $('#ritual-cards');
-  ['nothing', 'unknown'].forEach((key, idx) => {
-    const sp = SPECIAL[key];
-    const el = document.createElement('div');
-    el.className = 'ritual-card';
-    el.dataset.key = key;
-    el.setAttribute('role', 'button');
-    el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', '选中：' + sp.cn);
-    el.innerHTML = `
-      <img src="${sp.img}" alt="${sp.cn}">
-      <span class="ritual-badge">${sp.side === 'clow' ? '库洛 · ' : '小樱 · '}${sp.cn}</span>
-      <span class="ritual-check" aria-hidden="true">✦</span>
-      <span class="merged-tag" aria-hidden="true">已融合 ✦</span>
-      <button class="ritual-detail" title="查看详情" aria-label="查看详情：${sp.cn}">ⓘ</button>`;
-    el.addEventListener('click', () => toggleSelect(el, key));
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelect(el, key); }
-    });
-    el.querySelector('.ritual-detail').addEventListener('click', e => {
-      e.stopPropagation();
-      openModal(specialData(sp));
-    });
-    wrap.appendChild(el);
-    // 两张仪式牌之间放一枚「✦」连接符
-    if (idx === 0) {
-      const plus = document.createElement('span');
-      plus.className = 'plus';
-      plus.setAttribute('aria-hidden', 'true');
-      plus.textContent = '✦';
-      wrap.appendChild(plus);
-    }
-  });
-}
-
-function toggleSelect(el, key) {
-  if (synthesized) return;   // 已合成后仪式牌不可再选
-  if (selected.has(key)) { selected.delete(key); el.classList.remove('selected'); }
-  else { selected.add(key); el.classList.add('selected'); }
-  $('#synthesize').disabled = selected.size < 2;
-}
-
-function synthesize() {
-  if (synthesized || ritualOn || selected.size < 2) return;
-  synthesized = true;
-  save('hope', '1');
-  $('#synthesize').disabled = true;
-  $('#synthesize').textContent = '希望已诞生 ✦';
-  playRitual();
-}
-
-/* 仪式动画：两张牌飞向舞台中央 → 闪光 → 希望之牌诞生 */
-function playRitual() {
-  ritualOn = true;
-  const cards = $$('.ritual-card');
-  const rect = hopeStage.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-
-  ritualEl.classList.add('merging');
-  cards.forEach(el => {
-    const r = el.getBoundingClientRect();
-    el.style.transform =
-      `translate(${cx - (r.left + r.width / 2)}px, ${cy - (r.top + r.height / 2)}px) scale(.45)`;
-  });
-
-  setTimeout(() => {
-    burst(cx, cy, { count: 30 });
-    hopeStage.classList.add('burst');
-    cards.forEach(el => el.classList.add('merged'));
-  }, 900);
-
-  setTimeout(() => {
-    hopeStage.classList.remove('burst');
-    revealHope();
-    burst(cx, cy, { count: 42, hearts: true });
-  }, 1900);
-
-  setTimeout(() => {
-    ritualEl.classList.remove('merging');
-    cards.forEach(el => { el.style.transform = ''; });
-    $('#replay').classList.remove('hidden');
-    ritualOn = false;
-  }, 2600);
-}
-
-function revealHope() {
-  hopeStage.classList.add('revealed');
-}
-
-function replay() {
-  if (!synthesized || ritualOn) return;
-  $$('.ritual-card').forEach(el => {
-    el.classList.remove('merged', 'selected');
-    el.style.transform = '';
-  });
-  hopeStage.classList.remove('revealed');
-  selected.clear();
-  $('#replay').classList.add('hidden');
-  playRitual();
 }
 
 /* ============================================================
@@ -403,43 +708,44 @@ function flashScreen() {
    事件绑定与启动
    ============================================================ */
 function bindEvents() {
-  $$('.mode-btn').forEach(b => b.addEventListener('click', () => morphAll(b.dataset.mode)));
   $('#transform-all').addEventListener('click', () => {
     if (busy) return;
     flashScreen();
     morphAll(mode === 'sakura' ? 'clow' : 'sakura');
   });
   searchEl.addEventListener('input', applyFilter);
-  $('#synthesize').addEventListener('click', synthesize);
-  $('#replay').addEventListener('click', replay);
   $('#modal-flip').addEventListener('click', () => modalEl.querySelector('.modal-card').classList.toggle('flipped'));
   $('#modal-morph').addEventListener('click', morphModal);
   $('#modal-close').addEventListener('click', closeModal);
   $$('#modal [data-close]').forEach(el => el.addEventListener('click', closeModal));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-  $('#hope-flip').addEventListener('click', () => $('#hope-card').classList.toggle('flipped'));
-  $('#hope-detail').addEventListener('click', () => openModal(specialData(SPECIAL.hope)));
+  $('#hope-flip').addEventListener('click', () => {
+    if (!synthesized) return;                     // 未诞生：不可翻面
+    $('#hope-card').classList.toggle('flipped');
+  });
+  $('#hope-detail').addEventListener('click', () => {
+    if (!synthesized) { toast('它还未诞生…'); return; }   // 未诞生：不可查看详情
+    openModal(specialData(SPECIAL.hope));
+  });
+  // 屏蔽浏览器原生的图片拖拽，避免和自定义拖牌冲突
+  document.addEventListener('dragstart', e => {
+    if (e.target.closest('#grid')) e.preventDefault();
+  });
 }
 
 function init() {
   document.body.dataset.mode = mode;
-  // 注入三处魔法阵
-  $('.hero-ring').innerHTML   = MAGIC_RING;
+  $('.hero-ring').innerHTML     = MAGIC_RING;
   $('.magic-overlay').innerHTML = MAGIC_RING;
-  $('.stage-ring').innerHTML  = MAGIC_RING;
+  $('.stage-ring').innerHTML    = MAGIC_RING;
   buildGrid();
-  buildRitual();
   bindEvents();
   spawnPetals();
   updateModeUI();
-  // 若此前已合成过希望之牌，直接呈现
-  if (synthesized) {
-    revealHope();
-    $('#synthesize').textContent = '希望已诞生 ✦';
-    $('#synthesize').disabled = true;
-    $$('.ritual-card').forEach(el => el.classList.add('merged'));
-    $('#replay').classList.remove('hidden');
-  }
+  applyHopeState();   // 每次进入都从「未知」态开始
+  // 预加载真正的希望牌：合成瞬间切换 src 时不会因为解码而滞留旧图
+  const preload = new Image();
+  preload.src = HOPE_FACE.revealed.img;
 }
 
 init();

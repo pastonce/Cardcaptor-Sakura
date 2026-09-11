@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>魔卡少女樱 · 库洛牌 × 小樱牌 展览</title>
-  <link rel="icon" href="assets/SHope.jpeg">
+  <title>魔卡少女樱 · 库洛牌 & 小樱牌 一览</title>
+  <link rel="icon" type="image/jpeg" href="asserts/icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-mode="clow">
+  <script>
+    /* 在首帧绘制前恢复上次的卡组，避免刷新时先闪一下库洛主题再渐变过去 */
+    try { if (localStorage.getItem('ccs_mode') === 'sakura') document.body.dataset.mode = 'sakura'; } catch (e) {}
+  </script>
 
   <!-- 背景星点 -->
   <div id="bg-dots" aria-hidden="true"></div>
@@ -19,61 +23,15 @@
       <div class="hero-ring" aria-hidden="true"></div>
       <p class="en-title">Cardcaptor Sakura</p>
       <h1>魔卡少女樱</h1>
-      <p class="tagline">库洛牌 与 小樱牌 · 全卡面展览 —— 点击卡牌可翻面，点击 ⓘ 查看详情</p>
-
-      <div class="mode-switch" id="mode-switch" data-active="clow" role="tablist" aria-label="卡组切换">
-        <span class="indicator" aria-hidden="true"></span>
-        <button class="mode-btn active" data-mode="clow" role="tab">库洛牌</button>
-        <button class="mode-btn" data-mode="sakura" role="tab">小樱牌</button>
-      </div>
-      <div>
-        <button id="transform-all" class="magic-btn">✦ 封印解除 · 全部转化为小樱牌</button>
-      </div>
+      <p class="tagline">库洛牌 & 小樱牌 · 全卡面展览 —— 点击卡牌可翻面，点击 ⓘ 查看详情</p>
     </header>
 
     <main>
 
-      <!-- ============ 特别篇 · 希望之牌 ============ -->
-      <section aria-label="希望之牌合成仪式">
-        <h2 class="sec-title">✦ 特别篇 · 希望之牌 ✦</h2>
-        <p class="sec-sub">选中「无」与「爱」两张牌，见证最重要的「希望」之牌诞生</p>
-
-        <div class="ritual" id="ritual">
-          <div class="ritual-cards" id="ritual-cards"></div>
-
-          <div class="ritual-mid">
-            <button id="synthesize" class="magic-btn" disabled>开始合成</button>
-            <button id="replay" class="replay-btn hidden">再看一次 ✦</button>
-          </div>
-
-          <div class="hope-stage" id="hope-stage">
-            <div class="hope-locked">
-              <span class="hope-q">？</span>
-              <span class="hope-lock-text">集齐「无」与「爱」<br>即可合成希望之牌</span>
-            </div>
-            <div class="stage-ring" aria-hidden="true"></div>
-            <div class="hope-card" id="hope-card">
-              <button class="flip-zone" id="hope-flip" aria-label="翻面：希望">
-                <div class="flip-inner">
-                  <div class="flip-face front"><img src="assets/SHope.jpeg" alt="希望"></div>
-                  <div class="flip-face back"><img src="assets/SakuraCardSideB.jpeg" alt="卡背"></div>
-                </div>
-              </button>
-              <div class="hope-caption">
-                <h3>希望 <span>The Hope</span></h3>
-                <p>「无」与「爱」合而为一<br>由最深的感情诞生的牌</p>
-                <span class="hope-tag">✦ 最重要的一张 ✦</span>
-              </div>
-              <button class="ritual-detail" id="hope-detail" title="查看详情" aria-label="查看详情：希望">ⓘ</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- ============ 卡牌图鉴 ============ -->
-      <section aria-label="卡牌图鉴">
+      <section id="gallery" aria-label="卡牌图鉴">
         <h2 class="sec-title" id="gallery-title">库洛牌 · 全 52 张</h2>
-        <p class="sec-sub">两套卡牌一一对应 · 点击上方按钮，看转化魔法卷过整面图鉴</p>
+        <!-- <p class="sec-sub">两套卡牌一一对应 · 点击下方按钮，看转化魔法卷过整面图鉴</p> -->
 
         <div class="toolbar">
           <input id="search" type="search" placeholder="搜索卡牌（如：风 / Windy）…">
@@ -81,16 +39,56 @@
         </div>
 
         <div id="grid" class="grid"></div>
-        <p id="empty" class="empty hidden">没有找到匹配的卡牌 ✦</p>
+        <p id="empty" class="empty hidden">✦ 没有找到匹配的卡牌 ✦</p>
       </section>
 
-    </main>
+      <!-- ============ 特别篇 · 未知之牌（合成后揭晓） ============ -->
+      <section id="special" aria-label="特别篇">
+        <h2 class="sec-title" id="special-title">✦ 特别篇 · 未知之牌 ✦</h2>
+        <p class="sec-sub"><strong>搜寻</strong>正确的卡牌，并将它们拖进左侧的卡槽</p>
+        <!-- <p class="sec-hint">隐藏的牌，需要在搜索框中呼唤它的名字（记得先切到它所在的卡组）</p> -->
 
+        <div class="ritual" id="ritual">
+          <div class="drop-zone" id="drop-zone">
+            <div class="slot" data-slot="1"><span class="slot-ph">？</span></div>
+            <span class="plus" aria-hidden="true">✦</span>
+            <div class="slot" data-slot="2"><span class="slot-ph">？</span></div>
+          </div>
+
+          <div class="ritual-arrow" aria-hidden="true">✦</div>
+
+          <div class="hope-stage" id="hope-stage">
+            <div class="stage-ring" aria-hidden="true"></div>
+            <div class="hope-card framed frame-hope locked" id="hope-card">
+              <button class="flip-zone" id="hope-flip" aria-label="它还未诞生" disabled>
+                <div class="flip-inner">
+                  <div class="flip-face front"><img id="hope-face" src="asserts/SHope-uncreated.jpeg" alt="未知"></div>
+                  <div class="flip-face back"><img src="asserts/SakuraCardSideB.jpeg" alt="卡背"></div>
+                </div>
+              </button>
+              <div class="hope-caption">
+                <h3><span class="hope-name" id="hope-name">未知</span><span class="hope-en" id="hope-en">The Null</span></h3>
+                <p id="hope-desc">尚不可知</p>
+                <span class="hope-tag" id="hope-tag">✦ ？？？ ✦</span>
+              </div>
+              <button class="ritual-detail hidden" id="hope-detail" title="查看详情" aria-label="查看详情">ⓘ</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
     <footer>
-      <p>魔卡少女樱 · Cardcaptor Sakura © CLAMP · 私人收藏展示</p>
-      <p class="accent">无 与 爱，诞生希望 ✦</p>
+      <p class="motto">✦ <span class="m-clow">无</span> 与 <span class="m-sakura">爱</span>，诞生 <span class="m-hope" id="motto-name">未知</span> ✦</p>
+      <p class="credit">部分卡面以及卡牌「象征」释义整理自萌娘百科《库洛牌》条目</p>
+      <p>魔 卡 少 女 樱 · Cardcaptor Sakura © CLAMP</p>
     </footer>
   </div>
+
+  <!-- ============ 固定在屏幕上的转化按钮 ============ -->
+  <button id="transform-all" class="transform-fab">✦ 封印解除 · 转化为小樱牌 ✦</button>
+
+  <!-- 轻提示 -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- ============ 详情弹窗 ============ -->
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="卡牌详情">
@@ -108,9 +106,13 @@
         <h3 id="modal-name">风</h3>
         <p class="modal-en" id="modal-en">The Windy</p>
         <p class="modal-desc" id="modal-desc"></p>
+        <div class="modal-sym hidden" id="modal-sym-box">
+          <span class="modal-sym-label">象征</span>
+          <p id="modal-sym"></p>
+        </div>
         <div class="modal-actions">
           <button id="modal-flip" class="btn ghost">翻面</button>
-          <button id="modal-morph" class="btn primary">✦ 觉醒 · 转化为小樱牌</button>
+          <button id="modal-morph" class="btn primary">✦ 封印解除 · 转化为小樱牌 ✦</button>
         </div>
       </div>
     </div>

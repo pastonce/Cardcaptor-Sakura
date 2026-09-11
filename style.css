@@ -1,6 +1,6 @@
 /* ============================================================
    魔卡少女樱 · 库洛牌 × 小樱牌 展览 — 样式
-   主题：库洛 = 夜色深蓝 + 金 ／ 小樱 = 樱花粉 + 奶油白
+   主题：库洛 = 夜色深蓝 + 库洛黄 ／ 小樱 = 樱花粉 + 小樱粉
    ============================================================ */
 
 :root {
@@ -8,31 +8,67 @@
   --card-ratio: 4 / 9;              /* 卡面统一为竖版长卡 */
   --font-title: "KaiTi", "STKaiti", "楷体", "FangSong", serif;
   --font-ui: "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+
+  /* 三张特殊牌的固定色：不随主题切换而改变 */
+  --clow-gold:   #e8c76a;   /* 库洛黄 —— 无 */
+  --sakura-pink: #cf5c8b;   /* 小樱粉 —— 爱 */
+  /* 希望红：取自 SHope.jpeg 心形平涂处（实测 #B9232F），为兼顾夜色主题下的可读性略作提亮 */
+  --hope-red:    #c62a3a;
 }
+
+/* 把 --frame 挂到容器上，内部的卡面/拖拽幽灵/卡槽都跟着走 */
+.frame-clow   { --frame: var(--clow-gold); }
+.frame-sakura { --frame: var(--sakura-pink); }
+.frame-hope   { --frame: var(--hope-red); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; background: #191936; }
 
-/* ---------- 双主题（由 body[data-mode] 切换，两层渐变背景交叉过渡） ---------- */
-html { background: #191936; }
-
+/* ---------- 双主题（body[data-mode]），两层渐变背景交叉过渡 ---------- */
 body {
   --ink: #4b3a55;
   --ink-soft: #8d7f99;
   --panel: rgba(255, 255, 255, .62);
   --panel-strong: rgba(255, 255, 255, .94);
+  /* 合成台桌面：比页面底色略浅一点的粉，靠拢但不重合 */
+  --panel-ritual: rgba(253, 232, 242, .75);
   --line: rgba(75, 58, 85, .15);
-  --accent: #d8a03c;                 /* 主强调：金 */
-  --accent2: #e88ab0;                /* 次强调：樱粉 */
+  --accent: #d8a03c;
+  --accent2: #e88ab0;
   --glow: rgba(232, 138, 176, .45);
   --dot-color: rgba(216, 160, 60, .14);
   --card-border: rgba(255, 255, 255, .92);
+  /* 详情按钮：小樱模式下用淡粉底色，hover 转小樱粉 */
+  --detail-bg: #FCE6F0;
+  --detail-hover: var(--sakura-pink);
+  /* 当前卡组的代表色：卡名与拖拽高亮共用 */
+  --mode-color: var(--sakura-pink);
+  --name: var(--mode-color);        /* 小樱模式：小樱粉 */
+  --name-en: var(--mode-color);
   font-family: var(--font-ui);
   color: var(--ink);
   background: transparent;
   min-height: 100vh;
-  transition: color .9s ease;
+}
+
+body[data-mode="clow"] {
+  --ink: #eee9f8;
+  --ink-soft: #9c93bd;
+  --panel: rgba(30, 28, 66, .55);
+  --panel-strong: rgba(36, 34, 78, .94);
+  --panel-ritual: rgba(30, 28, 66, .55);
+  --line: rgba(238, 233, 248, .16);
+  --accent: #e0bc62;
+  --accent2: #8f9ae0;
+  --glow: rgba(224, 188, 98, .4);
+  --dot-color: rgba(224, 188, 98, .13);
+  --card-border: rgba(255, 255, 255, .88);
+  --detail-bg: var(--panel-strong);
+  --detail-hover: var(--accent);
+  --mode-color: var(--clow-gold);
+  --name: var(--mode-color);        /* 库洛模式：库洛黄 */
+  --name-en: var(--mode-color);
 }
 
 body::before, body::after {
@@ -50,25 +86,11 @@ body::after { /* 小樱：樱花晨光 */
 body[data-mode="sakura"]::before { opacity: 0; }
 body[data-mode="sakura"]::after  { opacity: 1; }
 
-/* 主题切换时让主要界面颜色平滑过渡 */
-body, .mode-switch, .ritual, .modal-body, .sec-title, .sec-sub, .tagline,
-.en-title, footer, .hope-locked, .hope-caption p, .modal-desc, .modal-en,
-#count, .empty, .hero h1 {
+/* 主题切换时主要界面颜色平滑过渡 */
+body, .ritual, .modal-body, .sec-title, .sec-sub, .tagline, .en-title,
+footer, .hope-caption p, .modal-desc, .modal-en, .modal-sym, .modal-sym-label,
+#count, .empty, .hero h1, .card-meta .cn, .card-meta .en, .slot, .toast {
   transition: color .9s ease, background-color .9s ease, border-color .9s ease;
-}
-
-body[data-mode="clow"] {
-  --bg-grad: linear-gradient(180deg, #26264e 0%, #191936 55%, #10101f 100%);
-  --ink: #eee9f8;
-  --ink-soft: #9c93bd;
-  --panel: rgba(30, 28, 66, .55);
-  --panel-strong: rgba(36, 34, 78, .94);
-  --line: rgba(238, 233, 248, .16);
-  --accent: #e0bc62;
-  --accent2: #8f9ae0;
-  --glow: rgba(224, 188, 98, .4);
-  --dot-color: rgba(224, 188, 98, .13);
-  --card-border: rgba(255, 255, 255, .88);
 }
 
 body.no-scroll { overflow: hidden; }
@@ -83,14 +105,13 @@ body.no-scroll { overflow: hidden; }
 }
 
 .page { position: relative; z-index: 1; }
-
 .hidden { display: none !important; }
 
 /* ---------- 头部 ---------- */
-.hero { text-align: center; padding: 64px 20px 44px; position: relative; }
+.hero { text-align: center; padding: 68px 20px 40px; position: relative; }
 
 .hero-ring {
-  position: absolute; left: 50%; top: 40%; z-index: 0;
+  position: absolute; left: 50%; top: 42%; z-index: 0;
   width: min(500px, 94vw); aspect-ratio: 1;
   transform: translate(-50%, -50%);
   color: var(--accent); opacity: .34;
@@ -114,198 +135,45 @@ body.no-scroll { overflow: hidden; }
   letter-spacing: .2em; text-indent: .2em; margin-top: 10px;
   text-shadow: 0 2px 18px var(--glow);
 }
-.hero .tagline { margin-top: 16px; color: var(--ink-soft); font-size: .9rem; letter-spacing: .05em; }
-
-/* ---------- 模式切换 ---------- */
-.mode-switch {
-  position: relative; display: inline-flex; margin-top: 28px; padding: 4px;
-  border-radius: 999px; background: var(--panel);
-  border: 1px solid var(--line); backdrop-filter: blur(8px);
-}
-.mode-switch .indicator {
-  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  transition: transform .5s cubic-bezier(.6, .05, .3, 1);
-}
-.mode-switch[data-active="sakura"] .indicator { transform: translateX(100%); }
-.mode-btn {
-  position: relative; z-index: 1; border: 0; background: none; cursor: pointer;
-  padding: 10px 32px; border-radius: 999px;
-  font-family: var(--font-title); font-size: 1rem; letter-spacing: .14em;
-  color: var(--ink); transition: color .4s;
-}
-.mode-btn.active { color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
-
-/* ---------- 魔法按钮 ---------- */
-.magic-btn {
-  margin-top: 18px; border: 0; cursor: pointer;
-  font-family: var(--font-ui); font-size: .93rem; letter-spacing: .1em;
-  color: #fff; padding: 12px 36px; border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  box-shadow: 0 6px 24px var(--glow);
-  transition: transform .3s, box-shadow .3s, filter .3s, opacity .3s;
-}
-.magic-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 32px var(--glow); }
-.magic-btn:disabled { opacity: .45; cursor: not-allowed; }
+.hero .tagline { margin-top: 18px; color: var(--ink-soft); font-size: .9rem; letter-spacing: .05em; }
 
 /* ---------- 区块 ---------- */
-section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
+section { max-width: 1100px; margin: 0 auto; padding: 12px 12px; }
 .sec-title { text-align: center; font-family: var(--font-title); font-size: 1.5rem; letter-spacing: .22em; text-indent: .22em; }
-.sec-sub { text-align: center; color: var(--ink-soft); font-size: .84rem; margin-top: 10px; letter-spacing: .06em; }
-
-/* ---------- 特别篇 · 合成仪式 ---------- */
-.ritual {
-  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 34px; margin-top: 28px; padding: 34px 22px;
-  border-radius: 20px; background: var(--panel);
-  border: 1px solid var(--line); backdrop-filter: blur(10px);
-}
-
-.ritual-cards { display: flex; align-items: center; gap: 22px; }
-.ritual-cards .plus {
-  font-size: 1.7rem; color: var(--accent); align-self: center;
-  text-shadow: 0 0 14px var(--glow);
-  animation: plusPulse 2.2s ease-in-out infinite;
-}
-@keyframes plusPulse { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
-
-.ritual-card {
-  position: relative; width: 128px; aspect-ratio: var(--card-ratio);
-  cursor: pointer; user-select: none; outline: none; z-index: 2;
-  transition: transform .5s cubic-bezier(.3, .7, .3, 1), opacity .6s;
-}
-.ritual-card:focus-visible { box-shadow: 0 0 0 3px var(--glow); border-radius: var(--radius); }
-.ritual-card img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  border-radius: var(--radius); border: 3px solid var(--card-border);
-  box-shadow: 0 10px 26px rgba(15, 10, 30, .25);
-  transition: box-shadow .4s, filter .4s;
-}
-.ritual-card:hover img { filter: brightness(1.08); }
-.ritual-card.selected { transform: translateY(-10px); }
-.ritual-card.selected img {
-  box-shadow: 0 14px 34px rgba(15, 10, 30, .35), 0 0 0 3px var(--accent), 0 0 26px var(--glow);
-}
-.ritual-card .ritual-badge {
-  position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
-  white-space: nowrap; font-size: .7rem; letter-spacing: .12em;
-  color: var(--ink-soft); background: var(--panel-strong);
-  border: 1px solid var(--line); padding: 2px 12px; border-radius: 999px;
-}
-.ritual-card .ritual-check {
-  position: absolute; top: -11px; right: -11px; width: 30px; height: 30px;
-  border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff; display: grid; place-items: center; font-size: .78rem;
-  box-shadow: 0 4px 14px var(--glow);
-  opacity: 0; transform: scale(.4); transition: .35s cubic-bezier(.2, 1.4, .4, 1);
-}
-.ritual-card.selected .ritual-check { opacity: 1; transform: scale(1); }
-.ritual-card .merged-tag {
-  position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);
-  font-size: .78rem; letter-spacing: .2em; color: var(--accent);
-  opacity: 0; transition: opacity .5s .4s; white-space: nowrap;
-  text-shadow: 0 0 10px var(--glow);
-}
-.ritual-card.merged { opacity: .22; filter: grayscale(.6); pointer-events: none; }
-.ritual-card.merged .ritual-check { opacity: 0; }
-.ritual-card.merged .merged-tag { opacity: 1; }
-.ritual.merging .ritual-card { pointer-events: none; }
-
-.detail-btn, .ritual-detail {
-  border: 1px solid var(--line); background: var(--panel-strong);
-  color: var(--ink-soft); width: 24px; height: 24px; border-radius: 50%;
-  font-size: .68rem; cursor: pointer; display: grid; place-items: center;
-  transition: .3s; line-height: 1;
-}
-.detail-btn:hover, .ritual-detail:hover { color: #fff; background: var(--accent); border-color: transparent; }
-.ritual-detail { position: absolute; top: 8px; left: 8px; z-index: 4; }
-
-.ritual-mid { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.ritual-mid .magic-btn { margin-top: 0; }
-
-.replay-btn {
-  border: 1px solid var(--line); background: none; color: var(--ink-soft);
-  font-size: .78rem; letter-spacing: .12em; padding: 8px 18px;
-  border-radius: 999px; cursor: pointer; transition: .3s;
-}
-.replay-btn:hover { color: var(--accent); border-color: var(--accent); }
-
-/* ---------- 希望之牌舞台 ---------- */
-.hope-stage { position: relative; width: 200px; height: 410px; display: grid; place-items: center; }
-.hope-locked { text-align: center; color: var(--ink-soft); transition: opacity .6s, transform .6s; z-index: 0; }
-.hope-locked .hope-q {
-  display: block; font-family: var(--font-title); font-size: 3.6rem; line-height: 1;
-  opacity: .5; margin-bottom: 12px;
-}
-.hope-locked .hope-lock-text { font-size: .76rem; line-height: 1.9; letter-spacing: .08em; }
-.hope-stage.revealed .hope-locked { opacity: 0; transform: scale(.8); pointer-events: none; }
-
-.stage-ring {
-  position: absolute; inset: 0; margin: auto; width: 240px; height: 240px;
-  color: var(--accent); opacity: 0; transform: scale(.3); pointer-events: none; z-index: 1;
-}
-.hope-stage.burst .stage-ring { animation: ringBurst 1s ease-out forwards; }
-.hope-stage.burst::after {
-  content: ""; position: absolute; inset: 0; border-radius: 20px;
-  background: radial-gradient(circle, rgba(255, 244, 214, .95), rgba(232, 138, 176, .35) 45%, transparent 75%);
-  animation: fadeAway 1s ease-out forwards; pointer-events: none;
-}
-@keyframes ringBurst {
-  0% { opacity: 0; transform: scale(.3) rotate(0deg); }
-  35% { opacity: .95; transform: scale(1.15) rotate(120deg); }
-  100% { opacity: 0; transform: scale(1.6) rotate(240deg); }
-}
-@keyframes fadeAway { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
-
-.hope-card {
-  --flip: 0deg;
-  position: absolute; inset: 0; z-index: 2;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  opacity: 0; transform: scale(.6); pointer-events: none;
-  transition: opacity .8s .2s, transform .8s cubic-bezier(.2, 1.4, .4, 1) .2s;
-}
-.hope-card.flipped { --flip: 180deg; }
-.hope-stage.revealed .hope-card { opacity: 1; transform: scale(1); pointer-events: auto; }
-.hope-card .flip-zone { width: 126px; }
-.hope-caption { text-align: center; }
-.hope-caption h3 { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: .3em; text-indent: .3em; }
-.hope-caption h3 span { display: block; font-size: .62rem; letter-spacing: .2em; color: var(--ink-soft); margin-top: 5px; font-family: var(--font-ui); }
-.hope-caption p { margin-top: 8px; font-size: .72rem; color: var(--ink-soft); line-height: 1.9; }
-.hope-tag {
-  display: inline-block; margin-top: 10px; font-size: .68rem; letter-spacing: .16em;
-  color: #fff; padding: 3px 12px; border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  box-shadow: 0 4px 14px var(--glow);
-}
+#special .sec-title { color: var(--hope-red); text-shadow: 0 0 20px rgba(198, 42, 58, .4); }   /* 特别篇标题固定希望红 */
+.sec-sub { text-align: center; color: var(--ink-soft); font-size: .84rem; margin-top: 16px; letter-spacing: .06em; }
+.sec-sub strong { font-weight: 700; color: var(--ink); }   /* 加黑强调关键词 */
+/* .sec-hint { text-align: center; color: var(--ink-soft); font-size: .74rem; margin-top: 8px; letter-spacing: .06em; opacity: .75; } */
 
 /* ---------- 图鉴工具栏 ---------- */
 .toolbar {
   display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 16px; margin: 20px auto 0; max-width: 560px; padding: 0 20px;
+  gap: 16px; margin: 22px auto 0; max-width: 560px; padding: 0 20px;
 }
 #search {
   flex: 1; min-width: 220px; border: 1px solid var(--line);
   background: var(--panel); color: var(--ink); border-radius: 999px;
   padding: 10px 22px; font-size: .9rem; outline: none;
-  backdrop-filter: blur(8px); transition: box-shadow .3s, border-color .3s, background-color .9s, color .9s;
+  backdrop-filter: blur(8px);
+  transition: box-shadow .3s, border-color .3s, background-color .9s, color .9s;
   font-family: var(--font-ui);
 }
 #search::placeholder { color: var(--ink-soft); }
 #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
 #count { color: var(--ink-soft); font-size: .8rem; white-space: nowrap; letter-spacing: .05em; }
+#count.revealed { color: var(--name); }
 .empty { text-align: center; color: var(--ink-soft); padding: 34px 0; font-size: .9rem; letter-spacing: .1em; }
 
-/* ---------- 卡牌网格与翻面 ---------- */
+/* ---------- 卡牌网格 ---------- */
+/* 行距 / 卡片顶部留白都给足，hover 上浮时不会被上一行遮挡 */
 .grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 28px 18px; margin-top: 24px;
+  gap: 9px 18px; margin-top: 18px;
 }
 
 .card {
-  --flip: 0deg;
-  position: relative;
-  content-visibility: auto; contain-intrinsic-size: 132px 297px;
+  --flip: 0deg; position: relative; padding-top: 14px;
+  user-select: none; -webkit-user-select: none;
 }
 .card.flipped { --flip: 180deg; }
 .card.hidden { display: none; }
@@ -313,9 +181,11 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
 .flip-zone {
   position: relative; display: block; width: 100%;
   aspect-ratio: var(--card-ratio);
-  border: 0; background: none; padding: 0; cursor: pointer;
+  border: 0; background: none; padding: 0; cursor: grab;
   perspective: 900px;
+  touch-action: pan-y;               /* 移动端保留纵向滚动 */
 }
+.flip-zone:active { cursor: grabbing; }
 .flip-inner {
   position: relative; width: 100%; height: 100%;
   transform-style: preserve-3d;
@@ -331,8 +201,11 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
   box-shadow: 0 10px 26px rgba(15, 10, 30, .28);
   transition: box-shadow .4s;
 }
-.flip-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.flip-face.front { border: 3px solid var(--card-border); }
+.flip-face img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  -webkit-user-drag: none; user-select: none;
+}
+.flip-face.front { border: 3px solid var(--frame, var(--card-border)); }
 .flip-face.back { transform: rotateY(180deg); border: 3px solid var(--card-border); }
 .card:hover .flip-face { box-shadow: 0 16px 38px rgba(15, 10, 30, .4), 0 0 22px var(--glow); }
 
@@ -340,18 +213,229 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
   position: absolute; top: 8px; left: 8px; z-index: 3;
   width: 22px; height: 22px; border-radius: 50%;
   display: grid; place-items: center;
-  font-size: .6rem; letter-spacing: 0; color: #fff;
+  font-size: .6rem; color: #fff;
   background: rgba(25, 15, 40, .5); backdrop-filter: blur(4px);
   pointer-events: none; transition: opacity .3s;
 }
 .card.flipped .card-no { opacity: 0; }
 
+/* 卡名：库洛模式统一库洛黄，小樱模式统一小樱粉 */
 .card-meta {
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-  margin-top: 12px; font-size: .86rem;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 12px;
 }
-.card-meta .cn { font-family: var(--font-title); font-size: 1rem; letter-spacing: .12em; }
-.card-meta .en { color: var(--ink-soft); font-size: .66rem; letter-spacing: .04em; }
+.card-meta .cn {
+  font-family: var(--font-title); font-size: 1rem; letter-spacing: .12em;
+  color: var(--name);
+}
+.card-meta .en {
+  font-size: .68rem; letter-spacing: .04em; color: var(--name-en);
+  opacity: .82;
+}
+
+/* 隐藏之牌的特别样式 */
+.card.special { animation: specialIn .65s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes specialIn { from { opacity: 0; transform: scale(.82) translateY(12px); } }
+/* 带特征色描边的卡：正面与背面都要描边，翻面之后同样成立 */
+.framed .flip-face.front,
+.framed .flip-face.back,
+.modal-body.is-special .modal-card .flip-face.front,
+.modal-body.is-special .modal-card .flip-face.back {
+  border-color: var(--frame);
+  box-shadow: 0 0 0 1px var(--frame), 0 0 24px var(--frame), 0 10px 26px rgba(15, 10, 30, .28);
+}
+
+/* ---------- 拖拽 ---------- */
+.card.drag-src { opacity: .34; }
+.card.drag-src .flip-inner { transform: rotateY(var(--flip)) scale(.96); }
+
+.drag-ghost {
+  position: fixed; left: 0; top: 0; z-index: 4000;
+  pointer-events: none; border-radius: var(--radius);
+  overflow: hidden; will-change: transform;
+  box-shadow: 0 22px 50px rgba(15, 10, 30, .5), 0 0 26px var(--frame, var(--glow));
+  transform-origin: center;
+}
+.drag-ghost img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border: 3px solid var(--frame, var(--card-border)); border-radius: var(--radius);
+}
+.drag-ghost.returning { transition: transform .3s cubic-bezier(.3, .7, .3, 1), opacity .3s; opacity: 0; }
+
+body.dragging { cursor: grabbing; }
+
+/* ---------- 特别篇 · 希望之牌合成 ---------- */
+.ritual {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 44px; margin-top: 26px; padding: 40px 24px;
+  border-radius: 20px; background: var(--panel-ritual);
+  border: 1px solid var(--line); backdrop-filter: blur(10px);
+  transition: box-shadow .4s, background-color .9s;
+}
+/* 拖牌时整块合成台亮起：库洛黄 / 小樱粉，跟着当前卡组走 */
+body.dragging .ritual { box-shadow: 0 0 0 1px var(--mode-color), 0 0 32px var(--mode-color); }
+
+.drop-zone { display: flex; align-items: center; gap: 18px; }
+.drop-zone .plus {
+  font-size: 1.6rem; color: var(--sakura-pink); opacity: .8;
+  text-shadow: 0 0 14px var(--sakura-pink);
+  animation: plusPulse 2.2s ease-in-out infinite;
+}
+@keyframes plusPulse { 0%, 100% { opacity: .5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.14); } }
+
+.slot {
+  position: relative; width: 132px; aspect-ratio: var(--card-ratio);
+  border: 2px dashed var(--line); border-radius: var(--radius);
+  display: grid; place-items: center;
+  transition: border-color .35s, box-shadow .35s, transform .35s, background-color .35s;
+}
+.slot .slot-ph {
+  font-family: var(--font-title); font-size: 2.2rem; color: var(--ink-soft); opacity: .45;
+  margin-left: 10px; transition: opacity .3s;
+}
+.slot.drag-over {
+  border-color: var(--mode-color); transform: scale(1.04);
+  box-shadow: 0 0 26px var(--mode-color), inset 0 0 20px var(--mode-color);
+}
+.slot.filled { border-style: solid; border-color: transparent; }
+.slot.filled .slot-ph { opacity: 0; }
+.slot.reject { animation: shake .5s; border-color: #e0687a; box-shadow: 0 0 20px rgba(224, 104, 122, .5); }
+.slot.accepted { animation: slotPop .55s cubic-bezier(.2, 1.5, .4, 1); }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes slotPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.1); box-shadow: 0 0 30px var(--glow); }
+  100% { transform: scale(1); }
+}
+
+.slot-card {
+  position: absolute; inset: 0; border-radius: var(--radius);
+  transition: transform .62s cubic-bezier(.4, 0, .2, 1), opacity .62s ease;
+  will-change: transform, opacity;
+}
+.slot-card img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: var(--radius); border: 3px solid var(--frame, var(--card-border));
+  box-shadow: 0 10px 26px rgba(15, 10, 30, .3), 0 0 22px var(--frame, transparent);
+}
+
+.ritual-arrow {
+  font-size: 1.7rem; color: var(--hope-red);
+  text-shadow: 0 0 16px var(--hope-red);
+  animation: plusPulse 2.6s ease-in-out infinite;
+}
+
+/* ---------- 希望之牌舞台 ---------- */
+.hope-stage { position: relative; width: 210px; height: 420px; display: grid; place-items: center; }
+
+.stage-ring {
+  position: absolute; inset: 0; margin: auto; width: 250px; height: 250px;
+  color: var(--hope-red); opacity: 0; transform: scale(.3); pointer-events: none; z-index: 1;
+}
+.hope-stage.burst .stage-ring { animation: ringBurst 1s ease-out forwards; }
+.hope-stage.burst::after {
+  content: ""; position: absolute; inset: 0; border-radius: 20px;
+  background: radial-gradient(circle, rgba(255, 244, 214, .95), rgba(232, 138, 176, .35) 45%, transparent 75%);
+  animation: fadeAway 1s ease-out forwards; pointer-events: none;
+}
+@keyframes ringBurst {
+  0% { opacity: 0; transform: scale(.3) rotate(0deg); }
+  35% { opacity: .95; transform: scale(1.15) rotate(120deg); }
+  100% { opacity: 0; transform: scale(1.6) rotate(240deg); }
+}
+@keyframes fadeAway { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+
+/* 这张牌始终摆在台上：未合成时是压暗的线稿「未知」态，合成后才亮起 */
+.hope-card {
+  --flip: 0deg;
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.hope-card.flipped { --flip: 180deg; }
+/* 合成成功的瞬间：希望之牌「诞生」的弹跳 */
+.hope-stage.revealed .hope-card { animation: hopeAppear .9s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes hopeAppear {
+  0% { transform: scale(.72); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+/* 注意：这里刻意不用 filter —— filter 会把 preserve-3d 压平，破坏翻面 */
+.hope-card.pulse { animation: hopePulse 1s cubic-bezier(.2, 1.3, .4, 1); }
+.hope-card.pulse .flip-face.front { animation: hopeGlow 1s ease; }
+@keyframes hopePulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+@keyframes hopeGlow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--hope-red), 0 0 24px var(--hope-red), 0 10px 26px rgba(15, 10, 30, .28); }
+  40% { box-shadow: 0 0 0 4px var(--hope-red), 0 0 52px var(--hope-red), 0 10px 26px rgba(15, 10, 30, .28); }
+}
+.hope-card .flip-zone { width: 126px; cursor: pointer; }
+.hope-card .flip-face.front img { transition: opacity .9s ease; }
+
+/* 未合成：它还只是一张「未知」的牌 —— 压暗，且不可翻面 */
+.hope-card.locked .flip-zone { cursor: default; }
+.hope-card.locked .flip-face.front img { opacity: .04; }   /* 极淡：细看才有线条 */
+.hope-card.locked .hope-caption { opacity: .78; }
+
+.hope-caption { text-align: center; transition: opacity .6s ease; }
+.hope-caption h3 { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: .3em; text-indent: .3em; color: var(--hope-red); }
+.hope-caption h3 .hope-en {
+  display: block; font-size: .62rem; letter-spacing: .2em; color: var(--hope-red);
+  margin-top: 5px; font-family: var(--font-ui); opacity: .72;
+}
+.hope-caption p { margin-top: 8px; font-size: .72rem; color: var(--hope-red); opacity: .85; line-height: 1.9; }
+.hope-tag {
+  display: inline-block; margin-top: 10px; font-size: .68rem; letter-spacing: .16em;
+  color: #fff; padding: 3px 12px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--hope-red), #e8778c);
+  box-shadow: 0 4px 14px rgba(198, 42, 58, .5);
+}
+
+.detail-btn, .ritual-detail {
+  border: 1px solid var(--line); background: var(--detail-bg);
+  color: var(--ink-soft); width: 24px; height: 24px; border-radius: 50%;
+  font-size: .68rem; cursor: pointer; display: grid; place-items: center;
+  transition: color .3s, background-color .3s, border-color .3s; line-height: 1;
+}
+.detail-btn:hover, .ritual-detail:hover {
+  color: #fff; background: var(--detail-hover); border-color: transparent;
+}
+.ritual-detail { position: absolute; top: 8px; left: 8px; z-index: 4; }
+
+/* ---------- 固定转化按钮 ---------- */
+.transform-fab {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  z-index: 900; border: 0; cursor: pointer; white-space: nowrap;
+  font-family: var(--font-ui); font-size: .9rem; letter-spacing: .1em;
+  color: #fff; padding: 13px 34px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 8px 30px var(--glow), 0 2px 12px rgba(0, 0, 0, .3);
+  transition: transform .3s, filter .3s, opacity .3s, background .9s;
+}
+.transform-fab:hover { transform: translateX(-50%) translateY(-3px); filter: brightness(1.08); }
+.transform-fab:active { transform: translateX(-50%) translateY(0); }
+.transform-fab:disabled { opacity: .55; cursor: default; }
+
+/* ---------- 轻提示 ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 96px; z-index: 1200;
+  transform: translate(-50%, 14px);
+  background: var(--panel-strong); border: 1px solid var(--line);
+  color: var(--ink); padding: 11px 24px; border-radius: 999px;
+  font-size: .82rem; letter-spacing: .08em; white-space: nowrap;
+  opacity: 0; pointer-events: none; backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+  transition: opacity .3s, transform .3s, background-color .9s, color .9s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- 转化波纹动画 ---------- */
 @keyframes morphFlash {
@@ -398,10 +482,14 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
 .modal-card.flipped { --flip: 180deg; }
 .modal-card .flip-inner { transition: transform .8s cubic-bezier(.35, .05, .25, 1); }
 .modal-card.morphing .flip-face img { animation: morphFlash .6s ease; }
-.modal-card.morphing .flip-inner { filter: drop-shadow(0 0 26px var(--glow)); }
+/* 光晕只能加在 .flip-face 上：加到 .flip-inner 上会因 filter 压平 preserve-3d，
+   导致翻到背面时 backface-visibility 失效、正面闪现一下 */
+.modal-card.morphing .flip-face {
+  box-shadow: 0 0 0 3px var(--accent), 0 0 30px var(--glow);
+}
 .magic-overlay {
-  position: absolute; inset: 0; margin: auto; width: 320px; height: 320px;
-  top: 50%; left: 50%; transform: translate(-50%, -50%) scale(.2);
+  position: absolute; top: 50%; left: 50%; width: 320px; height: 320px;
+  transform: translate(-50%, -50%) scale(.2);
   color: var(--accent); opacity: 0; pointer-events: none; z-index: 5;
 }
 .modal-card.morphing .magic-overlay { animation: overlayBurst .8s ease-out; }
@@ -413,21 +501,67 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
 
 .modal-info { flex: 1; min-width: 200px; }
 .modal-info h3 { font-family: var(--font-title); font-size: 2.1rem; letter-spacing: .18em; }
-.modal-en { color: var(--accent); letter-spacing: .14em; font-size: .78rem; margin-top: 6px; text-transform: uppercase; }
+
+/* 弹窗当前展示哪一面，就由 --side-color 提供该面的代表色：
+   库洛牌=库洛黄，小樱牌=小樱粉。英文名与「象征」都取用这一个来源。 */
+.modal-body[data-side="clow"]   { --side-color: var(--clow-gold); }
+.modal-body[data-side="sakura"] { --side-color: var(--sakura-pink); }
+
+.modal-en { color: var(--side-color); letter-spacing: .14em; font-size: .78rem; margin-top: 6px; text-transform: uppercase; }
+
+/* 三张特殊牌：中英文名都用该牌的特征色，中文名再加点装饰 */
+.modal-body.is-special .modal-en { color: var(--frame); opacity: .9; }
+.modal-body.is-special .modal-info h3 {
+  display: inline-block;
+  color: var(--frame);
+  font-size: 2.5rem;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--frame);
+  text-shadow: 0 0 18px var(--frame);
+  animation: nameBreathe 3.2s ease-in-out infinite;
+}
+.modal-body.is-special .modal-info h3::before,
+.modal-body.is-special .modal-info h3::after {
+  content: "✦"; font-family: var(--font-ui); font-size: .7rem;
+  font-weight: 400; vertical-align: super; opacity: .75;
+}
+.modal-body.is-special .modal-info h3::before { margin-right: .45em; }
+.modal-body.is-special .modal-info h3::after  { margin-left: .45em; }
+@keyframes nameBreathe {
+  0%, 100% { text-shadow: 0 0 14px var(--frame); }
+  50%      { text-shadow: 0 0 30px var(--frame), 0 0 52px var(--frame); }
+}
 .modal-desc { color: var(--ink-soft); font-size: .85rem; line-height: 1.9; margin-top: 16px; }
+
+/* 「象征」释义：左侧一道竖线，像一条引文；颜色跟着弹窗正反面走 */
+.modal-sym {
+  margin-top: 14px; padding: 10px 14px 10px 16px;
+  border-left: 2px solid var(--side-color, var(--mode-color));
+  background: rgba(130, 120, 150, .08);
+  border-radius: 0 10px 10px 0;
+}
+.modal-sym-label {
+  display: block; font-size: .64rem; letter-spacing: .3em; text-indent: .3em;
+  color: var(--side-color, var(--mode-color)); margin-bottom: 5px;
+}
+.modal-sym p { font-size: .84rem; line-height: 1.85; color: var(--ink); }
 .modal-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
 .btn {
   border: 1px solid var(--line); background: none; color: var(--ink);
   font-family: var(--font-ui); font-size: .86rem; letter-spacing: .1em;
   padding: 10px 20px; border-radius: 999px; cursor: pointer; transition: .3s;
 }
-.btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+/* hover 用当前卡组代表色：库洛模式库洛黄，小樱模式小樱粉 */
+.btn.ghost:hover { border-color: var(--mode-color); color: var(--mode-color); }
 .btn.primary {
   color: #fff; border: 0;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   box-shadow: 0 6px 20px var(--glow);
 }
-.btn.primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn.primary:hover {
+  filter: brightness(1.1); transform: translateY(-1px);
+  box-shadow: 0 8px 26px var(--mode-color);
+}
 
 /* ---------- 粒子与花瓣 ---------- */
 .particle {
@@ -467,16 +601,29 @@ section { max-width: 1100px; margin: 0 auto; padding: 34px 24px; }
 @keyframes screenFlash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ---------- 页脚 ---------- */
-footer { text-align: center; padding: 44px 20px 56px; color: var(--ink-soft); font-size: .78rem; letter-spacing: .08em; line-height: 2.2; }
-footer .accent { color: var(--accent); }
+footer {
+  text-align: center; padding: 10px 20px 80px;   /* 底部留出固定按钮的空间 */
+  color: var(--ink-soft); font-size: .78rem; letter-spacing: .08em; line-height: 2.2;
+}
+/* 页脚箴言：无=库洛黄、爱=小樱粉、希望=希望红，其余为默认色 */
+footer .motto { color: var(--ink-soft); }
+footer .credit { color: var(--ink-soft); opacity: .6; font-size: .7rem; letter-spacing: .04em; margin-top: 6px; }
+footer .m-clow   { color: var(--clow-gold); }
+footer .m-sakura { color: var(--sakura-pink); }
+footer .m-hope   { color: var(--hope-red); }
 
 /* ---------- 响应式 ---------- */
+@media (max-width: 720px) {
+  .ritual { flex-direction: column; gap: 30px; padding: 30px 18px; }
+  .ritual-arrow { transform: rotate(90deg); }
+  .hope-stage { width: 100%; height: 400px; }
+  .grid { gap: 40px 14px; }
+}
 @media (max-width: 640px) {
   .modal-body { flex-direction: column; padding: 28px 22px; gap: 24px; }
   .modal-card { width: 150px; }
   .modal-info { text-align: center; }
   .modal-actions { justify-content: center; }
-  .ritual { gap: 24px; }
-  .hope-stage { width: 100%; }
-  .grid { gap: 24px 14px; }
+  .slot { width: 108px; }
+  .drop-zone .plus { font-size: 1.2rem; }
 }
