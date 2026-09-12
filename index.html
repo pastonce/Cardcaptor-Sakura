@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>魔卡少女樱 · 库洛牌 & 小樱牌 一览</title>
-  <link rel="icon" type="image/jpeg" href="asserts/icon.png">
+  <link rel="icon" type="image/jpeg" href="./asserts/icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-mode="clow">
@@ -27,6 +27,35 @@
     </header>
 
     <main>
+
+      <!-- ============ 你手捧希望而来 ============ -->
+      <section id="poem" aria-label="你手捧希望而来">
+        <!-- <p class="sec-sub">把牌拖进魔法阵 —— 四方向各归其位，阵心留给最重要的那张</p> -->
+
+        <div class="poem-circle" id="poem-circle">
+          <div class="poem-ring" aria-hidden="true"></div>
+
+          <div class="slot poem-slot dir-n"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-e"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-s"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-w"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot poem-center" id="poem-center"><span class="slot-ph">？</span></div>
+
+          <!-- 诗位于魔法阵中央，压在阵心那张牌的上一层 -->
+          <div class="poem-text" id="poem-text">
+            <p class="poem-title" data-poem="title"><span class="poem-mask" data-part="pre"></span><em class="poem-key"></em><span class="poem-mask" data-part="post"></span></p>
+            <p class="poem-line" data-poem="night"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="ground"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="air"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="wood"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-last" id="poem-last"><span>今</span><span>夜</span><span>我</span><span>爱</span><span>你</span></p>
+          </div>
+        </div>
+
+        <div class="poem-foot">
+          <button id="poem-reset" class="replay-btn hidden">✦ 再读一次 ✦</button>
+        </div>
+      </section>
 
       <!-- ============ 卡牌图鉴 ============ -->
       <section id="gallery" aria-label="卡牌图鉴">
@@ -62,8 +91,8 @@
             <div class="hope-card framed frame-hope locked" id="hope-card">
               <button class="flip-zone" id="hope-flip" aria-label="它还未诞生" disabled>
                 <div class="flip-inner">
-                  <div class="flip-face front"><img id="hope-face" src="asserts/SHope-uncreated.jpeg" alt="未知"></div>
-                  <div class="flip-face back"><img src="asserts/SakuraCardSideB.jpeg" alt="卡背"></div>
+                  <div class="flip-face front"><img id="hope-face" src="./asserts/SHope-uncreated.jpeg" alt="未知"></div>
+                  <div class="flip-face back"><img src="./asserts/SakuraCardSideB.jpeg" alt="卡背"></div>
                 </div>
               </button>
               <div class="hope-caption">

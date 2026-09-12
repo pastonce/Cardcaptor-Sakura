@@ -5,7 +5,7 @@
 'use strict';
 
 /* ---------- 常量 ---------- */
-const ASSETS     = 'asserts/';                       // 所有卡图统一放在 asserts 目录下
+const ASSETS     = './asserts/';                       // 所有卡图统一放在 asserts 目录下
 const CLOW_DIR   = ASSETS + 'clow/';
 const SAKURA_DIR = ASSETS + 'sakura/';
 const C_BACK     = ASSETS + 'ClowCardSideB.jpeg';    // 库洛牌统一卡背
@@ -155,6 +155,7 @@ let synthesized = false;    // 希望之牌是否已合成 —— 刻意不持�
 let busy        = false;                     // 整面转化动画进行中
 let combining   = false;                     // 合成动画进行中
 let suppressClickUntil = 0;                  // 拖拽结束后抑制误触发的点击
+let secretHeard = false;                     // 当前是否已处于「密语命中」状态
 
 /* ---------- 元素 ---------- */
 const gridEl    = $('#grid');
@@ -318,11 +319,31 @@ function matchedSpecial(q) {
 }
 
 function applyFilter() {
-  const q = searchEl.value.trim().toLowerCase();
+  const raw = searchEl.value.trim();
+  const q = raw.toLowerCase();
   const hidden = matchedSpecial(q);
   let n = 0;
 
+  // 密语：一字不差才作数，命中后只留四张牌，并按「暗 → 地 → 风 → 树」的次序排开
+  if (POEM_SECRETS.indexOf(raw) !== -1) {
+    const order = POEM_TARGETS.map(t => t.id.replace('en:', ''));
+    gridEl.querySelectorAll('.card').forEach(el => {
+      const i = el._special ? -1 : order.indexOf(el._en);
+      el.classList.toggle('hidden', i === -1);
+      el.style.order = i === -1 ? '' : i;
+      if (i !== -1) n++;
+    });
+    countEl.textContent = `${n} / ${n} 张 · 密语`;
+    countEl.classList.add('revealed');
+    emptyEl.classList.add('hidden');
+    if (!secretHeard) toast('✦ 我听到了哦 ✦');
+    secretHeard = true;
+    return;
+  }
+  secretHeard = false;
+
   gridEl.querySelectorAll('.card').forEach(el => {
+    el.style.order = '';                     // 清掉密语留下的排序
     if (el._special) {                       // 隐藏之牌：只有被搜索命中才现身
       const hit = el._special === hidden;
       el.classList.toggle('hidden', !hit);
@@ -356,12 +377,14 @@ function payloadOf(cardEl) {
            special: cardEl._special, frame: cardEl._frame || null };
 }
 
-function attachDrag(zoneEl) {
+/* cardElOverride 用于非图鉴卡片（如合成台上的希望牌） */
+function attachDrag(zoneEl, cardElOverride) {
   zoneEl.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.target.closest('.detail-btn')) return;
-    const cardEl = zoneEl.closest('.card');
+    const cardEl = cardElOverride || zoneEl.closest('.card');
     if (!cardEl) return;
+    if (cardEl.classList.contains('locked')) return;   // 未诞生的牌不可拖
     pending = { cardEl, x: e.clientX, y: e.clientY,
                 rect: zoneEl.getBoundingClientRect(), payload: payloadOf(cardEl) };
     window.addEventListener('pointermove', onPointerMove, { passive: false });
@@ -412,14 +435,36 @@ function autoScroll(y) {
   }
 }
 
+/* 判定外圈的宽度，与 CSS 里的 --hit 同源（只读一次，避免每帧重算样式） */
+let hitPadCache = null;
+function hitPad() {
+  if (hitPadCache === null) {
+    hitPadCache = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--hit')
+    ) || 12;
+  }
+  return hitPadCache;
+}
+
+/* 落点判定：视觉框内优先；落在框外的判定外圈里时，取离中心最近的那个。
+   相邻卡槽的外圈可能重叠（方位槽与阵心只隔 7px），取最近才不会误判 */
 function slotAt(x, y) {
-  const el = document.elementFromPoint(x, y);   // 拖拽幽灵已设 pointer-events:none
-  return el ? el.closest('.slot') : null;
+  const pad = hitPad();
+  let best = null, bestD = Infinity;
+  for (const s of $$('.slot')) {
+    const r = s.getBoundingClientRect();
+    if (x < r.left - pad || x > r.right + pad || y < r.top - pad || y > r.bottom + pad) continue;
+    const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    const d = inside ? -1
+                     : Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  return best;
 }
 
 function hoverSlot(x, y) {
   const target = slotAt(x, y);
-  $$('#drop-zone .slot').forEach(s => s.classList.toggle('drag-over', s === target));
+  $$('.slot').forEach(s => s.classList.toggle('drag-over', s === target));
 }
 
 function onPointerUp(e) {
@@ -427,7 +472,9 @@ function onPointerUp(e) {
     const slot = slotAt(e.clientX, e.clientY);
     if (slot) {
       active.ghost.remove();
-      handleDrop(active.payload, slot);
+      // 落到哪个投放区，就交给哪个区的规则
+      if (slot.classList.contains('poem-slot')) handlePoemDrop(active.payload, slot);
+      else                                      handleDrop(active.payload, slot);
     } else {
       returnGhost();
     }
@@ -453,7 +500,7 @@ function cleanupDrag() {
   window.removeEventListener('pointermove', onPointerMove);
   window.removeEventListener('pointerup', onPointerUp);
   window.removeEventListener('pointercancel', onPointerCancel);
-  $$('#drop-zone .slot').forEach(s => s.classList.remove('drag-over'));
+  $$('.slot').forEach(s => s.classList.remove('drag-over'));
   if (active) {
     active.srcEl.classList.remove('drag-src');
     document.body.classList.remove('dragging');
@@ -582,6 +629,243 @@ function applyHopeState() {
   $('#hope-flip').disabled = !synthesized;
   $('#hope-flip').setAttribute('aria-label', synthesized ? '翻面：希望' : '它还未诞生');
   $('#hope-detail').classList.toggle('hidden', !synthesized);
+  // 让希望牌也能被拖走（拖拽系统按这些字段取用卡牌信息）
+  const hc = $('#hope-card');
+  hc._cn = s.cn;
+  hc._en = s.en;
+  hc._special = synthesized ? 'hope' : null;
+  hc._frame = 'hope';
+}
+
+/* ============================================================
+   你手捧希望而来：五张牌各归其位，诗才完整
+   ============================================================ */
+/* blocks = 该句英文去掉空格与标点后的字母数，用作初始遮挡的方块数 */
+const POEM_TARGETS = [
+  { key: 'night',  id: 'en:The Dark',   word: '夜晚', rest: '潮湿',   blocks: 15 },  // The night is moist
+  { key: 'ground', id: 'en:The Earthy', word: '地',   rest: '面潮湿', blocks: 12 },  // the ground wet
+  { key: 'air',    id: 'en:The Windy',  word: '空气', rest: '寂静',   blocks: 8  },  // air still
+  { key: 'wood',   id: 'en:The Wood',   word: '树',   rest: '林沉默', blocks: 11 },  // trees silent,
+];
+/* 题目同样先整体遮蔽；「希望」和诗中的关键字一样，由希望牌点亮 */
+const POEM_TITLE = { word: '希望', pre: '你手捧', preBlocks: 3, post: '而来', postBlocks: 2 };
+/* 搜索框里的密语：一字不差地输入，即按诗里的次序唤来那四张牌 */
+const POEM_SECRETS = ['今夜我爱你', '你手捧希望而来'];
+/* 逐句揭晓的顺序：先题目，再四句（与魔法阵上卡牌的次序一致） */
+const POEM_PART_KEYS = ['title', ...POEM_TARGETS.map(t => t.key)];
+const POEM_CENTER_KEY = 'hope';
+const POEM_TOTAL = POEM_TARGETS.length + 1;                 // 四方向 + 阵心
+const poemDone = new Set();
+
+const payloadId = p => (p.special ? 'special:' + p.special : 'en:' + p.en);
+const maskOf = n => '◼'.repeat(n);
+/* data-poem 在整首诗里唯一，题目用 .poem-title、诗句用 .poem-line，
+   所以这里不能限定类名，否则取题目会落空 */
+const poemLine = key => document.querySelector('[data-poem="' + key + '"]');
+
+/* 初始状态：整首诗只剩方块，认不出是哪一首。
+   关键字自己也先占着等量的方块，揭开时是「顶掉」而不是「插在前面」 */
+function buildPoem() {
+  POEM_TARGETS.forEach(t => {
+    const line = poemLine(t.key);
+    line.querySelector('.poem-key').textContent  = maskOf(t.word.length);
+    line.querySelector('.poem-mask').textContent = maskOf(t.blocks - t.word.length);
+  });
+  const title = poemLine('title');
+  title.querySelector('.poem-key').textContent         = maskOf(POEM_TITLE.word.length);
+  title.querySelector('[data-part="pre"]').textContent  = maskOf(POEM_TITLE.preBlocks);
+  title.querySelector('[data-part="post"]').textContent = maskOf(POEM_TITLE.postBlocks);
+}
+
+function handlePoemDrop(payload, slotEl) {
+  if (slotEl.dataset.filled === '1') { rejectSlot(slotEl, '这个位置已经有牌了'); return; }
+  const id = payloadId(payload);
+  const target = POEM_TARGETS.find(t => t.id === id);
+
+  if (slotEl.classList.contains('poem-center')) {
+    if (id !== 'special:hope') { rejectSlot(slotEl, '阵心只留给最重要的那张牌'); return; }
+    placeCard(slotEl, payload);
+    poemDone.add(POEM_CENTER_KEY);
+    revealPoemKey({ key: 'title', word: POEM_TITLE.word });   // 题目里的「希望」亮起
+  } else {
+    if (!target)                  { rejectSlot(slotEl, '这里没有它的位置…'); return; }
+    if (poemDone.has(target.key)) { rejectSlot(slotEl, '这张牌已经放入过了'); return; }
+    placeCard(slotEl, payload);
+    poemDone.add(target.key);
+    revealPoemKey(target);
+  }
+
+  slotEl.classList.add('accepted');
+  setTimeout(() => slotEl.classList.remove('accepted'), 600);
+
+  const r = slotEl.getBoundingClientRect();
+  burst(r.left + r.width / 2, r.top + r.height / 2, { count: 12 });
+
+  if (poemDone.size === POEM_TOTAL) finishPoem();
+}
+
+/* 关键字浮现在该句开头（地牌只给「地」，树牌只给「树」），其余仍是方块 */
+function revealPoemKey(target) {
+  const key = poemLine(target.key).querySelector('.poem-key');
+  key.textContent = target.word;      // 顶掉它原先占位的那几个方块
+  key.classList.add('lit');
+  key.classList.remove('pop');
+  void key.offsetWidth;          // 重排，保证动画每次都从头播
+  key.classList.add('pop');
+}
+
+/* 揭晓整首诗的一段：题目补全两侧，诗句把方块换成真句 */
+function revealPoemPart(key) {
+  if (key === 'title') {
+    const t = poemLine('title');
+    const pre  = t.querySelector('[data-part="pre"]');
+    const post = t.querySelector('[data-part="post"]');
+    pre.textContent = POEM_TITLE.pre;    pre.classList.add('shown');
+    post.textContent = POEM_TITLE.post;  post.classList.add('shown');
+    return;
+  }
+  const target = POEM_TARGETS.find(x => x.key === key);
+  if (!target) return;
+  const m = poemLine(key).querySelector('.poem-mask');
+  m.textContent = target.rest;
+  m.classList.add('shown');
+}
+
+/* 集齐之后：魔法阵转动 → 闪光 → 整首诗显形 → 今夜我爱你 */
+const CHARGE_MS = 4000;   // 集齐之后先蓄力这么久，再揭晓
+const SETTLE_MS = 2400;   // 揭晓之后再等这么久，一切才算落定
+/* 前五次闪光的时间点：每闪一次揭晓一句（题目 → 夜晚 → 地面 → 空气 → 树林），
+   间隔逐次收紧。必须早于下面的临界闪光，否则大爆发会抢在最后一句前面 */
+const HINT_FLASH_AT = [550, 1120, 1650, 2140, 2600];
+const CRIT_AT = 2950;              // 第六次闪光：临界一击
+const CRIT_MS = 1500;              // 它的持续时间比平时长，之后「今夜我爱你」才现身
+const QUAKE_MS = 1100;             // 单次震动时长，与 CSS 里 quake 动画一致
+
+function finishPoem() {
+  const circle = $('#poem-circle');
+  document.body.classList.add('petals-still');   // 仪式期间花瓣静止
+
+  const reveal = () => {
+    // 从当前实际角度接续减速，避免动画换挡时角度突跳
+    const ring = $('.poem-ring');
+    const tf = getComputedStyle(ring).transform;
+    let rot = 0;
+    if (tf && tf !== 'none') {
+      const m = new DOMMatrixReadOnly(tf);
+      rot = Math.atan2(m.b, m.a) * 180 / Math.PI;
+    }
+    ring.style.setProperty('--r0', rot.toFixed(2) + 'deg');
+
+    circle.classList.remove('charging');
+    circle.classList.add('slowing');
+    setTimeout(() => {
+      circle.classList.remove('slowing');
+      circle.classList.add('complete');
+    }, 1500);                                    // 与五个字依次现身同时收尾
+
+    // 兜底：正常流程下五句已在五次闪光里逐句显形，这里保证状态一定完整
+    POEM_PART_KEYS.forEach(revealPoemPart);
+
+    // 最高潮：今夜我爱你 —— 魔法阵震动 + 粒子，字逐个炸出来。
+    // 这里刻意不再打白光：任何满屏亮起都会盖住逐字登场的节奏
+    const last = $('#poem-last');
+    last.classList.add('show');
+    const lr = last.getBoundingClientRect();
+    const lx = lr.left + lr.width / 2;
+    const ly = lr.top + lr.height / 2;
+
+    pulseQuake(circle, 1100);
+    burst(lx, ly, { count: 40, hearts: true });
+    setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 430);
+    setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 900);
+  };
+
+  // 先把视线聚到魔法阵，再进入充能
+  const wait = focusOnCircle(circle);
+  setTimeout(() => {
+    circle.classList.add('charging');               // 圆环加速自转 + 明暗搏动
+
+    // 一次闪光揭晓一句；震动只跟着闪光走，不再另有不规律的震
+    HINT_FLASH_AT.forEach((at, i) => setTimeout(() => {
+      flashScreen();
+      pulseQuake(circle, QUAKE_MS);
+      revealPoemPart(i === 0 ? 'title' : POEM_TARGETS[i - 1].key);
+    }, at));
+
+    // 第六次闪光：临界一击，比前面几次亮得更久
+    setTimeout(() => {
+      flashScreen(true);
+      const c = circleCenter();
+      burst(c.x, c.y, { count: 36, hearts: true });
+      pulseQuake(circle, CRIT_MS);
+    }, CRIT_AT);
+
+    setTimeout(reveal, CHARGE_MS);
+  }, wait);
+
+  // 完全落定之后：花瓣重新飘落，这时才放出「再读一次」
+  setTimeout(() => {
+    document.body.classList.remove('petals-still');
+    $('#poem-reset').classList.remove('hidden');
+  }, wait + CHARGE_MS + SETTLE_MS);
+}
+
+const circleCenter = () => {
+  const r = $('#poem-circle').getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+};
+
+/* 触发一次震动；连续触发时先强制重排，保证动画每次都从头播 */
+function pulseQuake(circle, ms) {
+  clearTimeout(circle._quakeTimer);
+  circle.classList.remove('quake');
+  void circle.offsetWidth;
+  circle.classList.add('quake');
+  circle._quakeTimer = setTimeout(() => circle.classList.remove('quake'), ms);
+}
+
+/* 若魔法阵不在视野里，先平滑滚过去；返回需要等待的毫秒数 */
+function focusOnCircle(circle) {
+  const r = circle.getBoundingClientRect();
+  const offscreen = r.top < 40 || r.bottom > window.innerHeight - 10;
+  if (!offscreen) return 0;
+  circle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return 720;
+}
+
+function resetPoem() {
+  poemDone.clear();
+  $$('.poem-slot').forEach(s => {
+    const c = s.querySelector('.slot-card');
+    if (c) c.remove();
+    delete s.dataset.filled;
+    delete s._payload;
+    s.classList.remove('filled', 'accepted');
+  });
+  POEM_TARGETS.forEach(t => {
+    const line = poemLine(t.key);
+    const k = line.querySelector('.poem-key');
+    k.textContent = maskOf(t.word.length);
+    k.classList.remove('lit', 'pop');
+    const m = line.querySelector('.poem-mask');
+    m.textContent = maskOf(t.blocks - t.word.length);
+    m.classList.remove('shown');
+  });
+  const title = poemLine('title');
+  const tk = title.querySelector('.poem-key');
+  tk.textContent = maskOf(POEM_TITLE.word.length);
+  tk.classList.remove('lit', 'pop');
+  const pre  = title.querySelector('[data-part="pre"]');
+  const post = title.querySelector('[data-part="post"]');
+  pre.textContent = maskOf(POEM_TITLE.preBlocks);    pre.classList.remove('shown');
+  post.textContent = maskOf(POEM_TITLE.postBlocks);  post.classList.remove('shown');
+  $('#poem-last').classList.remove('show');
+  const circle = $('#poem-circle');
+  clearTimeout(circle._quakeTimer);
+  circle.classList.remove('complete', 'charging', 'slowing', 'quake');
+  $('.poem-ring').style.removeProperty('--r0');
+  document.body.classList.remove('petals-still');   // 花瓣恢复飘落
+  $('#poem-reset').classList.add('hidden');
 }
 
 let toastTimer = null;
@@ -697,11 +981,12 @@ function spawnPetals() {
   }
 }
 
-function flashScreen() {
+/* hold = true 时用更长的闪光（临界那一击用） */
+function flashScreen(hold) {
   const f = document.createElement('div');
-  f.className = 'screen-flash';
+  f.className = 'screen-flash' + (hold ? ' hold' : '');
   document.body.appendChild(f);
-  setTimeout(() => f.remove(), 1200);
+  setTimeout(() => f.remove(), hold ? 1600 : 1200);
 }
 
 /* ============================================================
@@ -727,6 +1012,9 @@ function bindEvents() {
     if (!synthesized) { toast('它还未诞生…'); return; }   // 未诞生：不可查看详情
     openModal(specialData(SPECIAL.hope));
   });
+  // 合成之后，希望牌本身也可以被拖去献诗
+  attachDrag($('#hope-flip'), $('#hope-card'));
+  $('#poem-reset').addEventListener('click', resetPoem);
   // 屏蔽浏览器原生的图片拖拽，避免和自定义拖牌冲突
   document.addEventListener('dragstart', e => {
     if (e.target.closest('#grid')) e.preventDefault();
@@ -735,11 +1023,14 @@ function bindEvents() {
 
 function init() {
   document.body.dataset.mode = mode;
+  // 先绑事件再渲染：后面任何渲染环节出问题，也不会连累按钮/搜索全部失灵
+  bindEvents();
   $('.hero-ring').innerHTML     = MAGIC_RING;
   $('.magic-overlay').innerHTML = MAGIC_RING;
   $('.stage-ring').innerHTML    = MAGIC_RING;
+  $('.poem-ring').innerHTML     = MAGIC_RING;
   buildGrid();
-  bindEvents();
+  buildPoem();
   spawnPetals();
   updateModeUI();
   applyHopeState();   // 每次进入都从「未知」态开始
