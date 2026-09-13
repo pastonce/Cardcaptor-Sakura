@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>魔卡少女樱 · 库洛牌 & 小樱牌 一览</title>
   <link rel="icon" type="image/jpeg" href="./asserts/icon.png">
+  <!-- 魔法阵素材（base64 内联，须在 style.css 之前加载） -->
+  <link rel="stylesheet" href="./magic-circle.css">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body data-mode="clow">
@@ -28,35 +30,6 @@
 
     <main>
 
-      <!-- ============ 你手捧希望而来 ============ -->
-      <section id="poem" aria-label="你手捧希望而来">
-        <!-- <p class="sec-sub">把牌拖进魔法阵 —— 四方向各归其位，阵心留给最重要的那张</p> -->
-
-        <div class="poem-circle" id="poem-circle">
-          <div class="poem-ring" aria-hidden="true"></div>
-
-          <div class="slot poem-slot dir-n"><span class="slot-ph">？</span></div>
-          <div class="slot poem-slot dir-e"><span class="slot-ph">？</span></div>
-          <div class="slot poem-slot dir-s"><span class="slot-ph">？</span></div>
-          <div class="slot poem-slot dir-w"><span class="slot-ph">？</span></div>
-          <div class="slot poem-slot poem-center" id="poem-center"><span class="slot-ph">？</span></div>
-
-          <!-- 诗位于魔法阵中央，压在阵心那张牌的上一层 -->
-          <div class="poem-text" id="poem-text">
-            <p class="poem-title" data-poem="title"><span class="poem-mask" data-part="pre"></span><em class="poem-key"></em><span class="poem-mask" data-part="post"></span></p>
-            <p class="poem-line" data-poem="night"><em class="poem-key"></em><span class="poem-mask"></span></p>
-            <p class="poem-line" data-poem="ground"><em class="poem-key"></em><span class="poem-mask"></span></p>
-            <p class="poem-line" data-poem="air"><em class="poem-key"></em><span class="poem-mask"></span></p>
-            <p class="poem-line" data-poem="wood"><em class="poem-key"></em><span class="poem-mask"></span></p>
-            <p class="poem-last" id="poem-last"><span>今</span><span>夜</span><span>我</span><span>爱</span><span>你</span></p>
-          </div>
-        </div>
-
-        <div class="poem-foot">
-          <button id="poem-reset" class="replay-btn hidden">✦ 再读一次 ✦</button>
-        </div>
-      </section>
-
       <!-- ============ 卡牌图鉴 ============ -->
       <section id="gallery" aria-label="卡牌图鉴">
         <h2 class="sec-title" id="gallery-title">库洛牌 · 全 52 张</h2>
@@ -70,12 +43,21 @@
         <div id="grid" class="grid"></div>
         <p id="empty" class="empty hidden">✦ 没有找到匹配的卡牌 ✦</p>
       </section>
+    </main>
+    <footer>
+      <p class="credit">部分卡面以及卡牌「象征」释义整理自萌娘百科《库洛牌》条目</p>
+      <p>魔 卡 少 女 樱 · Cardcaptor Sakura © CLAMP</p>
+    </footer>
+  </div>
 
-      <!-- ============ 特别篇 · 未知之牌（合成后揭晓） ============ -->
+  <!-- ============ 左侧抽屉 · 希望牌合成 ============ -->
+  <aside class="drawer drawer-left" id="drawer-left" aria-label="希望牌合成">
+    <button class="drawer-tab" data-drawer="left" aria-expanded="false" aria-controls="drawer-left-body">
+      <span class="drawer-tab-text" id="tab-left-text">✦ ◼◼之牌 ✦</span>
+    </button>
+    <div class="drawer-body" id="drawer-left-body">
       <section id="special" aria-label="特别篇">
-        <h2 class="sec-title" id="special-title">✦ 特别篇 · 未知之牌 ✦</h2>
-        <p class="sec-sub"><strong>搜寻</strong>正确的卡牌，并将它们拖进左侧的卡槽</p>
-        <!-- <p class="sec-hint">隐藏的牌，需要在搜索框中呼唤它的名字（记得先切到它所在的卡组）</p> -->
+        <p class="sec-sub"><strong>搜寻</strong>正确的卡牌，拖进下方卡槽</p>
 
         <div class="ritual" id="ritual">
           <div class="drop-zone" id="drop-zone">
@@ -104,17 +86,48 @@
             </div>
           </div>
         </div>
+
+        <p class="motto">✦ <span class="m-clow">无</span> 与 <span class="m-sakura">爱</span>，诞生 <span class="m-hope" id="motto-name">◼◼</span> ✦</p>
       </section>
-    </main>
-    <footer>
-      <p class="motto">✦ <span class="m-clow">无</span> 与 <span class="m-sakura">爱</span>，诞生 <span class="m-hope" id="motto-name">未知</span> ✦</p>
-      <p class="credit">部分卡面以及卡牌「象征」释义整理自萌娘百科《库洛牌》条目</p>
-      <p>魔 卡 少 女 樱 · Cardcaptor Sakura © CLAMP</p>
-    </footer>
-  </div>
+    </div>
+  </aside>
+  <aside class="drawer drawer-right" id="drawer-right" aria-label="你手捧希望而来">
+    <button class="drawer-tab" data-drawer="right" aria-expanded="false" aria-controls="drawer-right-body">
+      <span class="drawer-tab-text" id="tab-right-text">✦◼◼◼◼◼✦</span>
+    </button>
+    <div class="drawer-body" id="drawer-right-body">
+      <section id="poem" aria-label="你手捧希望而来">
+        <p class="sec-sub"><strong>或许</strong>，将汝等拥有的卡牌献上，见证佚失的诗篇被颂唱</p>
+
+        <div class="poem-circle" id="poem-circle">
+          <div class="poem-ring" aria-hidden="true"></div>
+
+          <div class="slot poem-slot dir-n"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-e"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-s"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot dir-w"><span class="slot-ph">？</span></div>
+          <div class="slot poem-slot poem-center" id="poem-center"><span class="slot-ph">？</span></div>
+
+          <!-- 诗位于魔法阵中央，压在阵心那张牌的上一层 -->
+          <div class="poem-text" id="poem-text">
+            <p class="poem-title" data-poem="title"><span class="poem-mask" data-part="pre"></span><em class="poem-key"></em><span class="poem-mask" data-part="post"></span></p>
+            <p class="poem-line" data-poem="night"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="ground"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="air"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-line" data-poem="wood"><em class="poem-key"></em><span class="poem-mask"></span></p>
+            <p class="poem-last" id="poem-last"><span>今</span><span>夜</span><span>我</span><span>爱</span><span>你</span></p>
+          </div>
+        </div>
+
+        <div class="poem-foot">
+          <button id="poem-reset" class="replay-btn hidden">✦ 再读一次 ✦</button>
+        </div>
+      </section>
+    </div>
+  </aside>
 
   <!-- ============ 固定在屏幕上的转化按钮 ============ -->
-  <button id="transform-all" class="transform-fab">✦ 封印解除 · 转化为小樱牌 ✦</button>
+  <button id="transform-all" class="transform-fab">✦ 封印 · 转化为小樱牌 ✦</button>
 
   <!-- 轻提示 -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -139,9 +152,13 @@
           <span class="modal-sym-label">象征</span>
           <p id="modal-sym"></p>
         </div>
+        <div class="modal-past hidden" id="modal-past-box">
+          <span class="modal-past-label">Past 有话说</span>
+          <p id="modal-past"></p>
+        </div>
         <div class="modal-actions">
           <button id="modal-flip" class="btn ghost">翻面</button>
-          <button id="modal-morph" class="btn primary">✦ 封印解除 · 转化为小樱牌 ✦</button>
+          <button id="modal-morph" class="btn primary">✦ 封印 · 转化为小樱牌 ✦</button>
         </div>
       </div>
     </div>

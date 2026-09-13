@@ -103,6 +103,72 @@ const SYMBOLS = {
   Silent:    '思虑深远、充电期',
 };
 
+/* ---------- 「Past 有话说」----------
+   每张牌在详情里的一句话。改哪张就改哪一行后面的字符串。
+   · 52 张普通牌按英文名索引（行尾注释是对应的中文名）
+   · 三张特殊牌用「特殊:中文名」
+   现在全是同一句占位，等你自己填 —— 填完刷新即可，无需改别处 */
+const PAST_NOTES = {
+  /* ---------- 52 张普通牌 ---------- */
+  Windy:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 风
+  Fly:      '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 翔
+  Shadow:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 影
+  Watery:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 水
+  Rain:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 雨
+  Wood:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 树
+  Jump:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 跳
+  Illusion: '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 幻
+  Thunder:  '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 雷
+  Sword:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 剑
+  Flower:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 花
+  Shield:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 盾
+  Power:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 力
+  Mist:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 雾
+  Storm:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 岚
+  Float:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 浮
+  Erase:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 消
+  Glow:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 灯
+  Move:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 移
+  Fight:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 斗
+  Loop:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 轮
+  Sleep:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 眠
+  Song:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 歌
+  Little:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 小
+  Mirror:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 镜
+  Maze:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 迷
+  Return:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 戻
+  Shot:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 击
+  Sweet:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 甘
+  Dash:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 驱
+  Big:      '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 大
+  Create:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 创
+  Change:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 替
+  Freeze:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 冻
+  Firey:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 火
+  Arrow:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 矢
+  Snow:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 雪
+  Voice:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 声
+  Lock:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 锭
+  Cloud:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 云
+  Dream:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 梦
+  Sand:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 砂
+  Dark:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 暗
+  Light:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 光
+  Time:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 时
+  Twin:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 双
+  Earthy:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 地
+  Bubbles:  '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 泡
+  Wave:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 波
+  Libra:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 秤
+  Through:  '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 抜
+  Silent:   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 静
+
+  /* ---------- 三张特殊牌 ---------- */
+  '特殊:无':   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 无
+  '特殊:爱':   '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 爱
+  '特殊:希望':  '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 希望
+};
+
 /* ---------- 三张特殊牌 ----------
    无 与 爱 默认藏在图鉴之外，只有在对应当前卡组中「精确搜索」才会现身。
    两张都拖进卡槽 → 合成最重要的「希望」。 */
@@ -132,12 +198,12 @@ const HOPE_FACE = {
   locked: {
     img: ASSETS + 'SHope-uncreated.jpeg', cn: '◼◼', en: 'The ◼◼◼◼',
     desc: '◼◼◼◼◼◼◼◼◼◼', tag: '✦ ◼◼◼◼◼◼ ✦',
-    title: '✦ 特别篇 · ◼◼之牌 ✦', motto: '◼◼',
+    title: '✦ ◼◼之牌 ✦', motto: '◼◼',
   },
   revealed: {
     img: ASSETS + 'SHope.jpeg', cn: '希望', en: 'The Hope',
     desc: '由最深的感情诞生之牌', tag: '✦ 最重要的一张 ✦',
-    title: '✦ 特别篇 · 希望之牌 ✦', motto: '希望',
+    title: '✦ 希望之牌 ✦', motto: '希望',
   },
 };
 
@@ -165,6 +231,70 @@ const emptyEl   = $('#empty');
 const toastEl   = $('#toast');
 const hopeStage = $('#hope-stage');
 
+/* ---------- 翻面 ----------
+   每次都从当前角度再加 180°，于是「正面→背面」和「背面→正面」朝同一方向转。
+   若只靠 .flipped 类在 0/180 之间来回切，两次的转向会正好相反。
+   类本身仍保留 —— 卡号、指针样式等还靠它判断正反面 */
+function flipCard(el, dir) {
+  el._flips = (el._flips || 0) + (dir === -1 ? -1 : 1);   // 传 -1 即逆时针
+  el.style.setProperty('--flip', (el._flips * 180) + 'deg');
+  el.classList.toggle('flipped', Math.abs(el._flips % 2) === 1);
+}
+function resetFlip(el) {
+  el._flips = 0;
+  el.style.removeProperty('--flip');
+  el.classList.remove('flipped');
+}
+
+/* ---------- 两侧抽屉 ---------- */
+const drawers = { left: $('#drawer-left'), right: $('#drawer-right') };
+const EDGE_ZONE = 120;   // 拖牌时距屏幕边缘多近就自动展开抽屉
+
+function setDrawer(side, open) {
+  const el = drawers[side];
+  if (!el) return;
+  el.classList.toggle('open', open);
+  const tab = el.querySelector('.drawer-tab');
+  if (tab) tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+const isDrawerOpen = side => !!drawers[side] && drawers[side].classList.contains('open');
+const autoOpened = { left: false, right: false };   // 记录「是拖牌顺手拉开的」，便于离开时收回
+
+function toggleDrawer(side) {
+  autoOpened[side] = false;                         // 手动操作过，就不再自动收回
+  setDrawer(side, !isDrawerOpen(side));
+}
+
+/* 拖牌时抽屉的两段判定，距离刻意不同：
+   展开 —— 只要碰到边缘把手那点宽度（TAB_ZONE）就弹出，不必先划很远；
+   收回 —— 要等指针离开抽屉展开后的整个宽度才收回，否则牌刚放进去、
+          手还没移开就会被判定为「离开」，抽屉立刻缩回去。 */
+const TAB_ZONE = 46;   // 与 .drawer 的 --tab-w 一致
+
+function edgeDrawers(x) {
+  const W = window.innerWidth;
+  const openL = x < TAB_ZONE;                                  // 触发展开
+  const openR = x > W - TAB_ZONE;
+  const holdL = x < (drawers.left.offsetWidth || EDGE_ZONE);   // 维持展开
+  const holdR = x > W - (drawers.right.offsetWidth || EDGE_ZONE);
+
+  for (const [side, want, hold] of [['left', openL, holdL], ['right', openR, holdR]]) {
+    if (want) {
+      setDrawer(side, true);
+      autoOpened[side] = true;
+    } else if (autoOpened[side] && !hold) {
+      setDrawer(side, false);
+      autoOpened[side] = false;
+    }
+    // 把手附近亮起，或指针已经在展开的抽屉上时持续亮着
+    drawers[side].classList.toggle('near', want || (isDrawerOpen(side) && hold));
+  }
+}
+function clearEdgeDrawers() {
+  drawers.left.classList.remove('near');
+  drawers.right.classList.remove('near');
+}
+
 /* ---------- 详情数据 ---------- */
 function specialData(sp) {
   return {
@@ -173,6 +303,7 @@ function specialData(sp) {
     sakuraSrc: sp.side === 'sakura' ? sp.img : null,
     descClow: sp.desc, descSakura: sp.desc,
     sym: '',                          // 三张特殊牌不在该资料的收录范围内
+    past: PAST_NOTES['特殊:' + sp.cn] || '',
   };
 }
 function pairData(card) {
@@ -183,6 +314,7 @@ function pairData(card) {
     descClow:   '封印着古老力量的库洛牌，安静地沉睡着。',
     descSakura: '由小樱重新唤醒的小樱牌，焕发着新的光芒。',
     sym: SYMBOLS[card.en] || '',
+    past: PAST_NOTES[card.en] || '',
   };
 }
 
@@ -221,7 +353,7 @@ function buildGrid() {
     const zone = el.querySelector('.flip-zone');
     zone.addEventListener('click', () => {
       if (performance.now() < suppressClickUntil) return;
-      el.classList.toggle('flipped');
+      flipCard(el);
     });
     el.querySelector('.detail-btn').addEventListener('click', () => openModal(pairData(card)));
     attachDrag(zone);
@@ -254,7 +386,7 @@ function buildGrid() {
     const zone = el.querySelector('.flip-zone');
     zone.addEventListener('click', () => {
       if (performance.now() < suppressClickUntil) return;
-      el.classList.toggle('flipped');
+      flipCard(el);
     });
     el.querySelector('.detail-btn').addEventListener('click', () => openModal(specialData(sp)));
     attachDrag(zone);
@@ -281,6 +413,7 @@ function morphAll(target) {
   updateModeUI();
 
   const toSakura = target === 'sakura';
+  document.body.classList.toggle('to-sakura', toSakura);   // 转化波纹换成小樱粉
   const items    = $$('#grid .card').filter(el => !el._special);
   const visible  = items.filter(el => !el.classList.contains('hidden'));
   items.forEach(el => { if (el.classList.contains('hidden')) swapCardImages(el, toSakura); });
@@ -296,14 +429,17 @@ function morphAll(target) {
     }, i * step);
   });
 
-  setTimeout(() => { busy = false; }, visible.length * step + 1000);
+  setTimeout(() => {
+    busy = false;
+    document.body.classList.remove('to-sakura');   // 波纹配色只在转化期间生效
+  }, visible.length * step + 1000);
 }
 
 function updateModeUI() {
   $('#gallery-title').textContent = modeName() + ' · 全 52 张';
   $('#transform-all').textContent = mode === 'sakura'
-    ? '✦ 封印逆转 · 恢复为库洛牌 ✦'
-    : '✦ 封印解除 · 转化为小樱牌 ✦';
+    ? '✦ 封印 · 恢复为库洛牌 ✦'
+    : '✦ 收服 · 转化为小樱牌 ✦';
   applyFilter();   // 卡组变了，隐藏之牌的可见性要重新判定
 }
 
@@ -403,6 +539,7 @@ function onPointerMove(e) {
   moveGhost(e.clientX, e.clientY);
   autoScroll(e.clientY);
   hoverSlot(e.clientX, e.clientY);
+  edgeDrawers(e.clientX);
 }
 
 function startDrag() {
@@ -415,6 +552,8 @@ function startDrag() {
   document.body.appendChild(ghost);
 
   active = { payload, ghost, offX: x - rect.left, offY: y - rect.top, srcEl: pending.cardEl };
+  // 把希望牌从左侧抽屉里拖走时，顺手收起抽屉让出视野
+  if (active.srcEl.id === 'hope-card') { setDrawer('left', false); autoOpened.left = false; }
   active.srcEl.classList.add('drag-src');
   document.body.classList.add('dragging');
   moveGhost(x, y);
@@ -501,6 +640,7 @@ function cleanupDrag() {
   window.removeEventListener('pointerup', onPointerUp);
   window.removeEventListener('pointercancel', onPointerCancel);
   $$('.slot').forEach(s => s.classList.remove('drag-over'));
+  clearEdgeDrawers();
   if (active) {
     active.srcEl.classList.remove('drag-src');
     document.body.classList.remove('dragging');
@@ -521,7 +661,11 @@ function placedKeys() {
 function handleDrop(payload, slotEl) {
   if (combining) return;
   if (slotEl.dataset.filled === '1') { rejectSlot(slotEl, '这个卡槽已经有牌了'); return; }
-  if (!payload.special)              { rejectSlot(slotEl, '这不是仪式需要的牌…'); return; }
+  // 只收「无」与「爱」。不能只判 payload.special 是否存在 ——
+  // 希望牌同样是特殊牌，那样会让它也能塞进这两个卡槽
+  if (SPECIAL_ORDER.indexOf(payload.special) === -1) {
+    rejectSlot(slotEl, '这不是仪式需要的牌…'); return;
+  }
   if (placedKeys().indexOf(payload.special) !== -1) { rejectSlot(slotEl, '这张牌已经放上去了'); return; }
 
   placeCard(slotEl, payload);
@@ -580,7 +724,7 @@ function combine() {
 
   setTimeout(() => {
     burst(cx, cy, { count: 38, hearts: true });
-    flashScreen();
+    flashScreen(false, $('#hope-card'));     // 以希望牌为中心炸开
   }, 900);
 
   setTimeout(() => {
@@ -623,8 +767,8 @@ function applyHopeState() {
   $('#hope-en').textContent   = s.en;
   $('#hope-desc').textContent = s.desc;
   $('#hope-tag').textContent  = s.tag;
-  $('#special-title').textContent = s.title;   // 段落标题也跟着揭晓
-  $('#motto-name').textContent    = s.motto;   // 页脚的同名关键字一并遮蔽
+  $('#tab-left-text').textContent = s.title;   // 抽屉把手就是它的名字
+  $('#motto-name').textContent    = s.motto;   // 题词里的关键字一并遮蔽
   $('#hope-card').classList.toggle('locked', !synthesized);
   $('#hope-flip').disabled = !synthesized;
   $('#hope-flip').setAttribute('aria-label', synthesized ? '翻面：希望' : '它还未诞生');
@@ -651,6 +795,8 @@ const POEM_TARGETS = [
 const POEM_TITLE = { word: '希望', pre: '你手捧', preBlocks: 3, post: '而来', postBlocks: 2 };
 /* 搜索框里的密语：一字不差地输入，即按诗里的次序唤来那四张牌 */
 const POEM_SECRETS = ['今夜我爱你', '你手捧希望而来'];
+/* 右侧抽屉把手：揭晓前是五个方块，揭晓后就是那句诗 */
+const POEM_TAB = { locked: '✦◼◼◼◼◼✦', revealed: '✦今夜我爱你✦' };
 /* 逐句揭晓的顺序：先题目，再四句（与魔法阵上卡牌的次序一致） */
 const POEM_PART_KEYS = ['title', ...POEM_TARGETS.map(t => t.key)];
 const POEM_CENTER_KEY = 'hope';
@@ -732,12 +878,13 @@ function revealPoemPart(key) {
 }
 
 /* 集齐之后：魔法阵转动 → 闪光 → 整首诗显形 → 今夜我爱你 */
-const CHARGE_MS = 4000;   // 集齐之后先蓄力这么久，再揭晓
+const CHARGE_MS = 4400;   // 集齐之后先蓄力这么久，再揭晓
 const SETTLE_MS = 2400;   // 揭晓之后再等这么久，一切才算落定
 /* 前五次闪光的时间点：每闪一次揭晓一句（题目 → 夜晚 → 地面 → 空气 → 树林），
    间隔逐次收紧。必须早于下面的临界闪光，否则大爆发会抢在最后一句前面 */
-const HINT_FLASH_AT = [550, 1120, 1650, 2140, 2600];
-const CRIT_AT = 2950;              // 第六次闪光：临界一击
+const HINT_FLASH_AT = [500, 1100, 1600, 2000, 2300];   // 间隔 600 → 500 → 400 → 300，越逼越紧
+const CRIT_AT = 2600;              // 第六次闪光：临界一击（与第五次只隔 300）
+// 之后到揭晓留出 1800ms 的空档：魔法阵在这段时间里一路加速到最快，是「蓄力」
 const CRIT_MS = 1500;              // 它的持续时间比平时长，之后「今夜我爱你」才现身
 const QUAKE_MS = 1100;             // 单次震动时长，与 CSS 里 quake 动画一致
 
@@ -768,6 +915,7 @@ function finishPoem() {
 
     // 最高潮：今夜我爱你 —— 魔法阵震动 + 粒子，字逐个炸出来。
     // 这里刻意不再打白光：任何满屏亮起都会盖住逐字登场的节奏
+    $('#tab-right-text').textContent = POEM_TAB.revealed;   // 把手也揭晓
     const last = $('#poem-last');
     last.classList.add('show');
     const lr = last.getBoundingClientRect();
@@ -775,26 +923,31 @@ function finishPoem() {
     const ly = lr.top + lr.height / 2;
 
     pulseQuake(circle, 1100);
+    // 震动峰值在动画的 8% 处（约 90ms），让图鉴的翻牌与那一击同步
+    setTimeout(quakeFlipGallery, 100);
     burst(lx, ly, { count: 40, hearts: true });
     setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 430);
     setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 900);
   };
 
-  // 先把视线聚到魔法阵，再进入充能
-  const wait = focusOnCircle(circle);
+  // 先把视线聚到魔法阵（必要时拉开右侧抽屉），再进入充能
+  const wait = focusOnCircle();
   setTimeout(() => {
-    circle.classList.add('charging');               // 圆环加速自转 + 明暗搏动
+    circle.style.setProperty('--charge-ms', CHARGE_MS + 'ms');   // 让 CSS 的加速时长与这里同步
+    circle.classList.add('charging');               // 圆环一路加速自转 + 明暗搏动
 
     // 一次闪光揭晓一句；震动只跟着闪光走，不再另有不规律的震
     HINT_FLASH_AT.forEach((at, i) => setTimeout(() => {
-      flashScreen();
+      flashScreen(false, circle);            // 以右侧魔法阵为中心
       pulseQuake(circle, QUAKE_MS);
       revealPoemPart(i === 0 ? 'title' : POEM_TARGETS[i - 1].key);
+      // 第五次震动：顺手把图鉴震翻一次（最后一次震动时会再翻一次，正好转回原面）
+      if (i === 4) setTimeout(quakeFlipGallery, 100);
     }, at));
 
     // 第六次闪光：临界一击，比前面几次亮得更久
     setTimeout(() => {
-      flashScreen(true);
+      flashScreen(true, circle);
       const c = circleCenter();
       burst(c.x, c.y, { count: 36, hearts: true });
       pulseQuake(circle, CRIT_MS);
@@ -815,6 +968,28 @@ const circleCenter = () => {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 };
 
+/* 震翻图鉴：把当前搜索结果里可见的牌，按「每行自右向左」依次翻一次（逆时针）。
+   先按 offsetTop 分行（网格行对齐，同一行的值完全相同），
+   各行内部从右往左错开，但**各行同时开始** —— 是横着一排排推过去，
+   不是翻完上一行再翻下一行。
+   在第五次震动与最后一次震动各调一次，两次各 180°，合起来正好转回原来那一面 */
+function quakeFlipGallery() {
+  const rows = new Map();
+  $$('#grid .card')
+    .filter(el => !el.classList.contains('hidden'))
+    .forEach(el => {
+      const key = el.offsetTop;
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push(el);
+    });
+
+  rows.forEach(row => {
+    row.map(el => ({ el, left: el.getBoundingClientRect().left }))
+       .sort((a, b) => b.left - a.left)              // 本行内从右往左
+       .forEach(({ el }, i) => setTimeout(() => flipCard(el, -1), i * 60));
+  });
+}
+
 /* 触发一次震动；连续触发时先强制重排，保证动画每次都从头播 */
 function pulseQuake(circle, ms) {
   clearTimeout(circle._quakeTimer);
@@ -825,12 +1000,12 @@ function pulseQuake(circle, ms) {
 }
 
 /* 若魔法阵不在视野里，先平滑滚过去；返回需要等待的毫秒数 */
-function focusOnCircle(circle) {
-  const r = circle.getBoundingClientRect();
-  const offscreen = r.top < 40 || r.bottom > window.innerHeight - 10;
-  if (!offscreen) return 0;
-  circle.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  return 720;
+/* —— 魔法阵在右侧抽屉里：揭晓前先确保抽屉是打开的
+   （原来这里是把页面滚动到魔法阵，改成抽屉后不再需要滚动） */
+function focusOnCircle() {
+  if (isDrawerOpen('right')) return 0;
+  setDrawer('right', true);
+  return 480;                      // 等抽屉滑入
 }
 
 function resetPoem() {
@@ -860,6 +1035,7 @@ function resetPoem() {
   pre.textContent = maskOf(POEM_TITLE.preBlocks);    pre.classList.remove('shown');
   post.textContent = maskOf(POEM_TITLE.postBlocks);  post.classList.remove('shown');
   $('#poem-last').classList.remove('show');
+  $('#tab-right-text').textContent = POEM_TAB.locked;
   const circle = $('#poem-circle');
   clearTimeout(circle._quakeTimer);
   circle.classList.remove('complete', 'charging', 'slowing', 'quake');
@@ -893,12 +1069,16 @@ function openModal(data) {
   bodyEl.classList.toggle('is-special', !!data.frame);
   if (data.frame) bodyEl.classList.add('frame-' + data.frame);
 
-  modalEl.querySelector('.modal-card').classList.remove('flipped', 'morphing');
+  resetFlip(modalEl.querySelector('.modal-card'));   // 每次打开都从正面起算，角度归零
+  modalEl.querySelector('.modal-card').classList.remove('morphing');
   $('#modal-name').textContent = data.cn;
   $('#modal-en').textContent   = data.en;
   // 「象征」释义：只有 52 张普通牌有，特殊牌整块隐藏
   $('#modal-sym').textContent  = data.sym || '';
   $('#modal-sym-box').classList.toggle('hidden', !data.sym);
+  // 「Past 有话说」：只有填了内容才显示
+  $('#modal-past').textContent = data.past || '';
+  $('#modal-past-box').classList.toggle('hidden', !data.past);
   applyModalSide();
   $('#modal-morph').classList.toggle('hidden', !data.morphable);
   modalEl.classList.remove('hidden');
@@ -923,8 +1103,8 @@ function closeModal() {
 function updateMorphBtn() {
   if (!modalData || !modalData.morphable) return;
   $('#modal-morph').textContent = modalSide === 'sakura'
-    ? '✦ 封印逆转 · 恢复为库洛牌 ✦'
-    : '✦ 封印解除 · 转化为小樱牌 ✦';
+    ? '✦ 封印 · 恢复为库洛牌 ✦'
+    : '✦ 收服 · 转化为小樱牌 ✦';
 }
 
 function morphModal() {
@@ -981,10 +1161,16 @@ function spawnPetals() {
   }
 }
 
-/* hold = true 时用更长的闪光（临界那一击用） */
-function flashScreen(hold) {
+/* hold = true 时用更长的闪光（临界那一击用）；
+   origin 传入元素则以它为中心炸开，不传则用屏幕中心 */
+function flashScreen(hold, origin) {
   const f = document.createElement('div');
   f.className = 'screen-flash' + (hold ? ' hold' : '');
+  if (origin) {
+    const r = origin.getBoundingClientRect();
+    f.style.setProperty('--fx', (r.left + r.width / 2) + 'px');
+    f.style.setProperty('--fy', (r.top + r.height / 2) + 'px');
+  }
   document.body.appendChild(f);
   setTimeout(() => f.remove(), hold ? 1600 : 1200);
 }
@@ -999,14 +1185,16 @@ function bindEvents() {
     morphAll(mode === 'sakura' ? 'clow' : 'sakura');
   });
   searchEl.addEventListener('input', applyFilter);
-  $('#modal-flip').addEventListener('click', () => modalEl.querySelector('.modal-card').classList.toggle('flipped'));
+  // 两侧抽屉的把手
+  $$('.drawer-tab').forEach(t => t.addEventListener('click', () => toggleDrawer(t.dataset.drawer)));
+  $('#modal-flip').addEventListener('click', () => flipCard(modalEl.querySelector('.modal-card')));
   $('#modal-morph').addEventListener('click', morphModal);
   $('#modal-close').addEventListener('click', closeModal);
   $$('#modal [data-close]').forEach(el => el.addEventListener('click', closeModal));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
   $('#hope-flip').addEventListener('click', () => {
     if (!synthesized) return;                     // 未诞生：不可翻面
-    $('#hope-card').classList.toggle('flipped');
+    flipCard($('#hope-card'));
   });
   $('#hope-detail').addEventListener('click', () => {
     if (!synthesized) { toast('它还未诞生…'); return; }   // 未诞生：不可查看详情
@@ -1025,10 +1213,9 @@ function init() {
   document.body.dataset.mode = mode;
   // 先绑事件再渲染：后面任何渲染环节出问题，也不会连累按钮/搜索全部失灵
   bindEvents();
-  $('.hero-ring').innerHTML     = MAGIC_RING;
+  // 页头 / 合成台 / 诗篇三处魔法阵都改用图片素材（见 style.css），不再注入 SVG；
+  // 只剩弹窗里那圈转化动效仍用 SVG
   $('.magic-overlay').innerHTML = MAGIC_RING;
-  $('.stage-ring').innerHTML    = MAGIC_RING;
-  $('.poem-ring').innerHTML     = MAGIC_RING;
   buildGrid();
   buildPoem();
   spawnPetals();
