@@ -55,6 +55,14 @@ body {
   /* 详情按钮：小樱模式下用淡粉底色，hover 转小樱粉 */
   --detail-bg: #FCE6F0;
   --detail-hover: var(--sakura-pink);
+  /* 密码门配色：取自背景海报的「黑 / 银白 / 玫瑰红」。
+     这是浅色海报那一版：纸底 + 墨黑，红是两版共有的玫瑰红
+     （实测深色 #824E4F、浅色 #875253，这里略提亮以便 UI 上看得清） */
+  --gate-bg: rgba(226, 219, 203, .95);
+  --gate-ink: #17120f;
+  --gate-field: rgba(23, 18, 15, .06);
+  --gate-line: rgba(23, 18, 15, .22);
+  --gate-red: #9e4a4e;
   /* 当前卡组的代表色：卡名与拖拽高亮共用 */
   --mode-color: var(--sakura-pink);
   --name: var(--mode-color);        /* 小樱模式：小樱粉 */
@@ -80,6 +88,11 @@ body[data-mode="clow"] {
   --card-border: rgba(255, 255, 255, .88);
   --detail-bg: var(--panel-strong);
   --detail-hover: var(--accent);
+  /* 密码门：深色海报那一版 —— 纯黑底 + 银白纹饰 */
+  --gate-bg: rgba(10, 8, 9, .93);
+  --gate-ink: #cac3b0;
+  --gate-field: rgba(202, 195, 176, .1);
+  --gate-line: rgba(202, 195, 176, .3);
   --mode-color: var(--clow-gold);
   --name: var(--mode-color);        /* 库洛模式：库洛黄 */
   --name-en: var(--mode-color);
@@ -126,6 +139,84 @@ body.no-scroll { overflow: hidden; }
   display: flex; flex-direction: column;
   min-height: 100vh;
 }
+
+/* ============================================================
+   密码门：整页遮罩，解开前看不到也点不到后面的内容。
+   ============================================================ */
+.gate {
+  position: fixed; inset: 0; z-index: 4500;
+  overflow: hidden;
+  /* 海报直接铺满整页。cover 等价于「把画面放大到盖住视口」，
+     而视口比例通常窄于海报的 1.9264，此时整幅画面高度是完整可见的 ——
+     所以密码框用视口百分比定位，就等同于压在海报的同一处 */
+  background-color: #0a0708;
+  background-image: url('./asserts/Dantalian-light.jpeg');
+  background-size: cover;
+  background-position: center;
+  transition: opacity .9s ease, visibility .9s ease;
+}
+body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.jpeg'); }
+.gate.done { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* 密码框的纵向落位（坐标均为裁切后海报的像素）：
+     208  主标题下沿
+     234~262  花饰纹章   ┐
+     292~308  Episode 00 ├ 都要盖住
+     324~352  The Harlequinade ┘
+     354~370  空白
+     374~390  下方图案开始浮现
+     394+     图案实体
+   top 37.6% 是实测出来的**下移上限**
+   居中用 left/right + margin auto，不用 transform —— 抖动动画要占用 transform */
+.gate-panel {
+  position: absolute;
+  left: 0; right: 0; top: 37.6%;
+  margin: 0 auto;
+  width: min(480px, 84%);              /* 左右加宽 */
+  padding: 21px 34px 19px;             /* 上下收窄，左右留白加大 */
+  border-radius: 22px; text-align: center;
+  background: var(--gate-bg);
+  /* 面板若留一点透明，海报上的亮字会透出来；加一层背景模糊彻底糊掉它 */
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--gate-line);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .5);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.gate.done .gate-panel { opacity: 0; transform: scale(.94); }
+.gate-title {
+  font-family: var(--font-title); font-weight: 700;
+  font-size: 1.45rem; letter-spacing: .24em; text-indent: .24em;
+  color: var(--gate-red);                /* 海报的玫瑰红 */
+  text-shadow: 0 0 22px rgba(158, 74, 78, .45);
+}
+.gate-question {
+  margin-top: 14px; font-size: .92rem; line-height: 1.9;
+  letter-spacing: .06em; color: var(--gate-ink);
+}
+
+.gate-inputs { display: flex; justify-content: center; gap: 12px; margin: 15px 0 3px; }
+.gate-digit {
+  width: 54px; height: 64px;
+  border-radius: 13px; border: 1px solid var(--gate-line);
+  background: var(--gate-field); color: var(--gate-ink);
+  font-family: var(--font-title); font-size: 1.7rem; text-align: center;
+  outline: none; caret-color: var(--gate-red);
+  transition: border-color .3s, box-shadow .3s, transform .3s;
+}
+.gate-digit:focus {
+  border-color: var(--gate-red); transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(158, 74, 78, .28);
+}
+
+.gate-msg {
+  margin-top: 11px; min-height: 1.6em;
+  font-size: .8rem; letter-spacing: .08em; line-height: 1.7;
+  transition: color .3s;
+}
+.gate-msg.bad  { color: var(--gate-red); }
+/* 答对的提示固定用这个绿 */
+.gate-msg.good { color: #68ac70; }
+.gate-panel.shake { animation: shake .5s; }
 .page > main { flex: 1 0 auto; }
 .hidden { display: none !important; }
 
@@ -133,7 +224,6 @@ body.no-scroll { overflow: hidden; }
 .hero { text-align: center; padding: 68px 20px 40px; position: relative; }
 
 /* 页头魔法阵：用线稿素材当遮罩，底色取当前卡组色。
-   这样既保留「随卡组变色」，又保留自转 —— 与原来那版 SVG 的表现一致。
    素材本身是透明底的黑白线稿，alpha 即形状。
 
    注意 --magic-circle 是 base64 内联的（见 magic-circle.css），不是文件路径：
@@ -177,7 +267,6 @@ section { max-width: 1100px; margin: 0 auto; padding: 12px 12px; }
 #special .sec-title { color: var(--hope-red); text-shadow: 0 0 20px rgba(198, 42, 58, .4); }   /* 特别篇标题固定希望红 */
 .sec-sub { text-align: center; color: var(--ink-soft); font-size: .84rem; margin-top: 16px; letter-spacing: .06em; }
 .sec-sub strong { font-weight: 700; color: var(--ink); }   /* 加黑强调关键词 */
-/* .sec-hint { text-align: center; color: var(--ink-soft); font-size: .74rem; margin-top: 8px; letter-spacing: .06em; opacity: .75; } */
 
 /* ---------- 图鉴工具栏 ---------- */
 .toolbar {
@@ -307,9 +396,6 @@ body.dragging { cursor: grabbing; }
   transition: box-shadow .4s, background-color .9s;
 }
 /* 拖牌时整块合成台亮起：库洛黄 / 小樱粉，跟着当前卡组走 */
-/* 原先拖牌时 .ritual 会亮起一圈发光边框，现已去掉 ——
-   合成台搬进左侧抽屉后，抽屉本身就承担了这个高亮提示（见下方 .drawer 一节），
-   两层叠在一起会显得有内外两道框 */
 
 .drop-zone { display: flex; align-items: center; gap: 18px; }
 .drop-zone .plus {
@@ -514,9 +600,9 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 /* 揭晓后：从高速缓缓减到常速，时长与五个字现身同步。
    --r0 由 JS 按当前实际角度写入，这样接续处不会「跳角度」。
    缓动终点斜率 = (1-.99)/(1-.5) = .02，恰是 360°/1.5s 与 360°/72s 的比值，
-   也就是减速结束时正好落在常速自转上，而不是先停住再重新起步 */
+   也就是减速结束时正好落在常速自转上 */
 /* 起点斜率 .41/.15 ≈ 2.73 → 起始 656°/s，正好接上蓄力段结束时的 655°/s；
-   终点斜率 (1-.99)/(1-.5) = .02，正好接上后面的常速自转。两头都不跳速 */
+   终点斜率 (1-.99)/(1-.5) = .02，正好接上后面的常速自转。 */
 .poem-circle.slowing .poem-ring { animation: ringSpinDown 1.5s cubic-bezier(.15, .41, .5, .99) forwards; }
 @keyframes ringSpinDown {
   from { transform: translate(-50%, -50%) rotate(var(--r0, 0deg)) scale(1.1); }
@@ -547,7 +633,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
   text-align: center;
 }
 
-/* 没有底衬了：先描一圈实边，再叠一层柔光，压在任何卡面上都读得清 */
+/* 先描一圈实边，再叠一层柔光，压在任何卡面上都读得清 */
 .poem-title, .poem-line { text-shadow: var(--outline), 0 0 12px var(--halo); }
 
 .poem-title {
@@ -569,8 +655,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .poem-title .poem-mask.shown,
 .poem-line .poem-mask.shown { color: var(--ink); opacity: .9; }
 
-/* 关键字：未揭开时和方块长得一模一样（否则会提前暴露它在哪、有几个字），
-   揭开后顶掉那几个方块，加粗 + 卡组色 + 双层光晕 */
+/* 关键字：揭开后顶掉相应数量的方块，加粗 + 卡组色 + 双层光晕 */
 .poem-key {
   display: inline-block; font-style: normal;
   color: var(--ink); opacity: .72;
@@ -660,7 +745,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 }
 @keyframes fadeAway { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 
-/* 这张牌始终摆在台上：未合成时是压暗的线稿「未知」态，合成后才亮起 */
+/* 这张牌未合成时是压暗的线稿「未知」态，合成后才亮起 */
 .hope-card {
   --flip: 0deg;
   position: absolute; inset: 0; z-index: 2;
@@ -689,7 +774,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .hope-card .flip-zone { width: 126px; cursor: pointer; }
 .hope-card .flip-face.front img { transition: opacity .9s ease; }
 
-/* 未合成：它还只是一张「未知」的牌 —— 压暗，且不可翻面 */
+/* 未合成：压暗，且不可翻面 */
 .hope-card.locked .flip-zone { cursor: default; }
 .hope-card.locked .flip-face.front img { opacity: .025; }   /* 极淡：细看才有线条 */
 .hope-card.locked .hope-caption { opacity: .78; }
@@ -828,8 +913,7 @@ body.to-sakura .card.morphing .flip-zone::after {
 .modal-info { flex: 1; min-width: 200px; }
 .modal-info h3 { font-family: var(--font-title); font-size: 2.1rem; letter-spacing: .18em; }
 
-/* 弹窗当前展示哪一面，就由 --side-color 提供该面的代表色：
-   库洛牌=库洛黄，小樱牌=小樱粉。英文名与「象征」都取用这一个来源。 */
+/* 弹窗当前展示哪一面，就由 --side-color 提供该面的代表色：英文名与「象征」都取用这一个来源。 */
 .modal-body[data-side="clow"]   { --side-color: var(--clow-gold); }
 .modal-body[data-side="sakura"] { --side-color: var(--sakura-pink); }
 
@@ -860,8 +944,7 @@ body.to-sakura .card.morphing .flip-zone::after {
 .modal-desc { color: var(--ink-soft); font-size: .85rem; line-height: 1.9; margin-top: 16px; }
 
 /* 详情里的两个补充条目：「象征」与「Past 有话说」。
-   两者共用同一套规则 —— 左侧一道竖线像引文，颜色跟着弹窗正反面走。
-   合并成一组选择器，是为了让它们永远保持一致，改一处即两处同步 */
+   两者共用同一套规则 —— 左侧一道竖线像引文，颜色跟着弹窗正反面走。 */
 .modal-sym, .modal-past {
   margin-top: 14px; padding: 10px 14px 10px 16px;
   border-left: 2px solid var(--side-color, var(--mode-color));
@@ -879,7 +962,7 @@ body.to-sakura .card.morphing .flip-zone::after {
   font-family: var(--font-ui); font-size: .86rem; letter-spacing: .1em;
   padding: 10px 20px; border-radius: 999px; cursor: pointer; transition: .3s;
 }
-/* hover 用当前卡组代表色：库洛模式库洛黄，小樱模式小樱粉 */
+/* hover 用当前卡组代表色 */
 .btn.ghost:hover { border-color: var(--mode-color); color: var(--mode-color); }
 .btn.primary {
   color: #fff; border: 0;
@@ -912,7 +995,7 @@ body.to-sakura .card.morphing .flip-zone::after {
   animation: petalFall linear infinite;
 }
 .petal.gold { background: linear-gradient(135deg, #ffe9b0, #e3b955); width: 10px; height: 10px; }
-/* 献诗仪式期间花瓣定格：不落也不飘，让注意力全在魔法阵上 */
+/* 献诗仪式期间花瓣定格：不落也不飘 */
 body.petals-still .petal { animation-play-state: paused; }
 @keyframes petalFall {
   0% { transform: translate3d(0, 0, 0) rotate(0deg); }
@@ -942,16 +1025,14 @@ body.petals-still .petal { animation-play-state: paused; }
 }
 
 /* ---------- 页脚 ---------- */
-/* 贴在页面底端：搜索把图鉴过滤变短时也不会往上跑，但它是随页面滚动的，
-   不是常驻可见。底部留出 80px 给那颗固定在屏幕上的转化按钮 */
+/* 贴在页面底端，底部留出 80px 给那颗固定在屏幕上的转化按钮 */
 footer {
   flex-shrink: 0;
   text-align: center;
   padding: 24px 20px 80px;
   color: var(--ink-soft); font-size: .78rem; letter-spacing: .08em; line-height: 2.2;
 }
-/* 题词（现位于左侧抽屉）：无=库洛黄、爱=小樱粉、希望=希望红，其余为默认色。
-   不再限定 footer —— 它已经搬进抽屉了 */
+/* 题词（现位于左侧抽屉）：无=库洛黄、爱=小樱粉、希望=希望红，其余为默认色。 */
 .motto { color: var(--ink-soft); font-size: .8rem; letter-spacing: .08em; }
 .m-clow   { color: var(--clow-gold); }
 .m-sakura { color: var(--sakura-pink); }

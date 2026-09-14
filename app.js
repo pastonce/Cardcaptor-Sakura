@@ -1176,6 +1176,113 @@ function flashScreen(hold, origin) {
 }
 
 /* ============================================================
+   密码门：两层，解开前整页既看不见也点不到。
+
+   改密码：控制台执行 gateHash('新密码') 得到摘要，替换下面对应那行即可。
+   ============================================================ */
+const GATE_LEVELS = [
+  { len: 2, question: '最喜欢的两个数字？', ok: '还有第二关！？',
+    hash: '6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918' },
+  { len: 4, question: '最让人想说“私、気になります！”的四个数字？', ok: '好奇心，值得被嘉奖哦~',
+    hash: '216da54b5931a6d37cca8e29953361fe02c680bbd8b482343f508e32e8e9cc3b' },
+];
+const GATE_WRONG = '笨蛋——再想想呢？';
+
+let gateLevel = 0;
+let gateChecking = false;                    // 防止连打时重复校验
+const gateDigits = () => [...$('#gate-inputs').children];
+
+/* 用 Web Crypto 算摘要。file:// 下 Chrome 也把它当安全上下文，这个 API 可用 */
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* 改密码用的小工具：控制台执行 gateHash('新密码') 即可拿到摘要 */
+window.gateHash = text => sha256Hex(text).then(h => { console.log('摘要：', h); return h; });
+
+let gateMsgTimer = null;
+function gateSay(msg, kind) {
+  const el = $('#gate-msg');
+  el.textContent = msg;
+  el.className = 'gate-msg' + (kind ? ' ' + kind : '');
+  clearTimeout(gateMsgTimer);
+  // 答错的提示自己退场，免得一直挂在那里
+  if (msg && kind === 'bad') {
+    gateMsgTimer = setTimeout(() => {
+      el.textContent = '';
+      el.className = 'gate-msg';
+    }, 2600);
+  }
+}
+
+function buildGate(level) {
+  const cfg = GATE_LEVELS[level];
+  $('#gate-question').textContent = cfg.question;
+  const box = $('#gate-inputs');
+  box.innerHTML = '';
+  for (let i = 0; i < cfg.len; i++) {
+    const inp = document.createElement('input');
+    inp.className = 'gate-digit';
+    inp.type = 'text';
+    inp.inputMode = 'numeric';
+    inp.maxLength = 1;
+    inp.autocomplete = 'off';
+    inp.setAttribute('aria-label', '第 ' + (i + 1) + ' 位数字');
+    inp.addEventListener('input', () => {
+      inp.value = inp.value.replace(/\D/g, '').slice(0, 1);      // 只留数字
+      if (inp.value && i < cfg.len - 1) box.children[i + 1].focus();
+      if (gateDigits().every(d => d.value)) gateCheck();          // 填满即校验
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !inp.value && i > 0) box.children[i - 1].focus();
+      if (e.key === 'Enter') gateCheck();
+    });
+    box.appendChild(inp);
+  }
+  box.children[0].focus();
+}
+
+async function gateCheck() {
+  if (gateChecking) return;
+  const cfg = GATE_LEVELS[gateLevel];
+  const typed = gateDigits().map(d => d.value).join('');
+  if (typed.length < cfg.len) return;
+
+  gateChecking = true;
+  let got = '';
+  try { got = await sha256Hex(typed); } catch (e) { got = ''; }
+  gateChecking = false;
+
+  if (got === cfg.hash) {
+    gateSay(cfg.ok, 'good');
+    if (gateLevel < GATE_LEVELS.length - 1) {
+      setTimeout(() => { gateLevel++; gateSay(''); buildGate(gateLevel); }, 1250);
+    } else {
+      setTimeout(gateUnlock, 1350);
+    }
+  } else {
+    gateSay(GATE_WRONG, 'bad');
+    const panel = $('#gate-panel');
+    panel.classList.remove('shake');
+    void panel.offsetWidth;                    // 重排，保证连错也能重复触发
+    panel.classList.add('shake');
+    setTimeout(() => {
+      gateDigits().forEach(d => { d.value = ''; });
+      $('#gate-inputs').children[0].focus();
+    }, 430);
+  }
+}
+
+function gateUnlock() {
+  const g = $('#gate');
+  // 整块淡出即可，页头那颗本来就在后面等着
+  g.classList.add('done');
+  document.body.classList.remove('no-scroll');
+  setTimeout(() => g.remove(), 900);
+}
+
+/* ============================================================
    事件绑定与启动
    ============================================================ */
 function bindEvents() {
@@ -1213,6 +1320,11 @@ function init() {
   document.body.dataset.mode = mode;
   // 先绑事件再渲染：后面任何渲染环节出问题，也不会连累按钮/搜索全部失灵
   bindEvents();
+  // 密码门：先上锁再干别的，未解锁时也禁止页面滚动
+  if ($('#gate')) {
+    document.body.classList.add('no-scroll');
+    buildGate(0);
+  }
   // 页头 / 合成台 / 诗篇三处魔法阵都改用图片素材（见 style.css），不再注入 SVG；
   // 只剩弹窗里那圈转化动效仍用 SVG
   $('.magic-overlay').innerHTML = MAGIC_RING;

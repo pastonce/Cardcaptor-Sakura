@@ -18,6 +18,16 @@
   <!-- 背景星点 -->
   <div id="bg-dots" aria-hidden="true"></div>
 
+  <!-- ============ 密码门 ============ -->
+  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-label="输入密码">
+    <div class="gate-panel" id="gate-panel">
+      <h2 class="gate-title">✦ 解除封印 ✦</h2>
+      <p class="gate-question" id="gate-question">最喜欢的两个数字？</p>
+      <div class="gate-inputs" id="gate-inputs"></div>
+      <p class="gate-msg" id="gate-msg"></p>
+    </div>
+  </div>
+
   <div class="page">
 
     <!-- ============ 头部 ============ -->
@@ -33,8 +43,6 @@
       <!-- ============ 卡牌图鉴 ============ -->
       <section id="gallery" aria-label="卡牌图鉴">
         <h2 class="sec-title" id="gallery-title">库洛牌 · 全 52 张</h2>
-        <!-- <p class="sec-sub">两套卡牌一一对应 · 点击下方按钮，看转化魔法卷过整面图鉴</p> -->
-
         <div class="toolbar">
           <input id="search" type="search" placeholder="搜索卡牌（如：风 / Windy）…">
           <span id="count">52 / 52 张 · 库洛牌</span>
@@ -45,7 +53,7 @@
       </section>
     </main>
     <footer>
-      <p class="credit">部分卡面以及卡牌「象征」释义整理自萌娘百科《库洛牌》条目</p>
+      <p class="credit">卡面以及卡牌「象征」释义整理自萌娘百科《库洛牌》条目</p>
       <p>魔 卡 少 女 樱 · Cardcaptor Sakura © CLAMP</p>
     </footer>
   </div>
