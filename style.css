@@ -226,21 +226,26 @@ body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.j
 /* 页头魔法阵：用线稿素材当遮罩，底色取当前卡组色。
    素材本身是透明底的黑白线稿，alpha 即形状。
 
-   注意 --magic-circle 是 base64 内联的（见 magic-circle.css），不是文件路径：
+   注意魔法阵素材是 base64 内联的（见 magic-circle.css），不是文件路径：
    Chrome 在 file:// 下会拒绝为 CSS mask 加载本地图片，
    遮罩取不到图 → 整个元素被完全遮掉 → 页头看不到魔法阵。
-   data: URL 属同源，不受此限制。 */
+   data: URL 属同源，不受此限制。
+
+   阵形随卡组走：库洛牌状态是库洛阵（五芒星），小樱牌状态是樱阵（星·日·月）。
+   只换 --ring-src，位置、尺寸、底色都不动，所以切换时只有形状在变。 */
 .hero-ring {
+  --ring-src: var(--magic-circle-sakura);
   position: absolute; left: 50%; top: 42%; z-index: 0;
   width: min(500px, 94vw); aspect-ratio: 1;
   transform: translate(-50%, -50%);
   background-color: var(--mode-color);         /* 跟随当前卡组：库洛黄 / 小樱粉 */
-  -webkit-mask: var(--magic-circle) center / 94% no-repeat;
-  mask: var(--magic-circle) center / 94% no-repeat;
+  -webkit-mask: var(--ring-src) center / 94% no-repeat;
+  mask: var(--ring-src) center / 94% no-repeat;
   opacity: .34;
   animation: ringSpin 100s linear infinite;
   transition: background-color .9s ease;
 }
+body[data-mode="clow"] .hero-ring { --ring-src: var(--magic-circle-clow); }
 .hero > :not(.hero-ring) { position: relative; z-index: 1; }
 .magic-overlay svg { width: 100%; height: 100%; }
 
@@ -576,8 +581,8 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
   position: absolute; left: 50%; top: 50%;
   width: 77%; aspect-ratio: 1; transform: translate(-50%, -50%);
   background-color: var(--mode-color);
-  -webkit-mask: var(--magic-circle) center / 94% no-repeat;
-  mask: var(--magic-circle) center / 94% no-repeat;
+  -webkit-mask: var(--magic-circle-sakura) center / 94% no-repeat;
+  mask: var(--magic-circle-sakura) center / 94% no-repeat;
   opacity: .26; pointer-events: none;
   transition: opacity .8s ease, background-color .9s ease;
 }
@@ -728,8 +733,8 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .stage-ring {
   position: absolute; inset: 0; margin: auto; width: 250px; height: 250px;
   background-color: var(--hope-red);
-  -webkit-mask: var(--magic-circle) center / 94% no-repeat;
-  mask: var(--magic-circle) center / 94% no-repeat;
+  -webkit-mask: var(--magic-circle-sakura) center / 94% no-repeat;
+  mask: var(--magic-circle-sakura) center / 94% no-repeat;
   opacity: 0; transform: scale(.3); pointer-events: none; z-index: 1;
 }
 .hope-stage.burst .stage-ring { animation: ringBurst 1s ease-out forwards; }
