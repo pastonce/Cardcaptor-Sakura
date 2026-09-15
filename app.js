@@ -49,12 +49,12 @@ const CARDS = [
 /* ---------- 各牌「象征」释义 ----------
    资料整理自萌娘百科《库洛牌》条目（CC BY-NC-SA），按英文名索引 */
 const SYMBOLS = {
-  Windy:     '前进、充实、期待的暗示',
+  Windy:     '前进、充实、期待的暗示³',
   Fly:       '挑战飞跃的机会',
   Shadow:    '未知的部分，问题的发生与消除',
   Watery:    '协调性，打开他人心扉的力量',
   Rain:      '最后终究会好转',
-  Wood:      '象征各自的成长与发展',
+  Wood:      '象征各自的成长与发展⁴',
   Jump:      '实力发挥、最佳状态',
   Illusion:  '想要从现实中逃离的欲望',
   Silent:    '思虑深远、充电期',
@@ -93,9 +93,9 @@ const SYMBOLS = {
   Dream:     '了解自己的机会，潜在意识的发展期',
   Sand:      '不要害怕改变，加以挑战',
   Light:     '由自己来主导对未来的展望',
-  Dark:      '照旧、顺着自然的发展前进',
+  Dark:      '照旧、顺着自然的发展前进¹',
   Twin:      '最佳搭挡的出现',
-  Earthy:    '生命的发源地，努力与包容性的象征',
+  Earthy:    '生命的发源地，努力与包容性的象征²',
   Libra:     '对人生、行动、思考的比重调整',
   Wave:      '柔软的姿态为你带来好运气',
   Bubbles:   '感情的净化，由恶性循环脱离的时机',
@@ -117,7 +117,7 @@ const PAST_NOTES = {
   Rain:     '🌸被水牌的大手压力了还哭唧唧，调皮又可爱，她只是想见萧敬腾——',   // 雨
   Wood:     '🌸她甚至是自己变回了牌我哭死，美丽又温柔，她只是想晒个太阳——',   // 树
   Jump:     '🌸“地心引力，那是什么？”不过叫声很有喜感，而且自己摔了，整段垮掉',   // 跳
-  Illusion: '🌸据传，卖火柴的小女孩就曾遇到这张牌......',   // 幻
+  Illusion: '🌸据传，卖火柴的小女孩就曾遇到这张牌...',   // 幻
   Silent:   '🌸---------- The Shy ----------',   // 静
   Thunder:  '🌸雷电法王！小樱小狼第一次配合收牌，那么问题来了应该电谁？',   // 雷
   Sword:    '🌸帅 Sword 帅！这是最强之剑任何盾都无法抵挡',   // 剑
@@ -256,6 +256,8 @@ function setDrawer(side, open) {
   el.classList.toggle('open', open);
   const tab = el.querySelector('.drawer-tab');
   if (tab) tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // 诗篇抽屉一拉开就重放竖排文字的浮现，并把光标送进密码框（已解锁则都不做）
+  if (side === 'right' && open) { riseRiddle(); focusLock(); }
 }
 const isDrawerOpen = side => !!drawers[side] && drawers[side].classList.contains('open');
 const autoOpened = { left: false, right: false };   // 记录「是拖牌顺手拉开的」，便于离开时收回
@@ -1283,6 +1285,177 @@ function gateUnlock() {
 }
 
 /* ============================================================
+   右侧抽屉的诗篇密码：12 位数字，只是排成两行显示，密码本身仍是一整串。
+
+   改密码：控制台执行 gateHash('新密码') 得到摘要，替换下面这行。
+   ============================================================ */
+const LOCK_HASH = 'b8cb0038746176052f8f15c8d9b4b21292a76ec9a05d44beab47f87f9a2011bf';
+const LOCK_COLS = 6;                    // 每行 6 位，两行共 12 位
+const LOCK_LINE_STEP = 140;             // 竖排文字：每个字之间差这么久
+const LOCK_LINE_GAP  = 700;             // 竖排文字：两列之间差这么久（≈ 5 × STEP）
+
+/* 竖排的文字。各列都垂直居中于两行密码的中线上（见 style.css 的 --lk-text-pitch），
+   于是「吾问汝」三个字正好落在第一行／两行中间／第二行上 */
+const LOCK_TEXT = {
+  /* 问句在右，从右向左读 */
+  riddle: ['吾问汝', '汝为人乎？'],
+  /* 答句在左，同样从右向左读 */
+  answer: ['否，吾乃天', '壶中之天！'],
+};
+
+/* 答对之后在密码正下方打出来的宣告，分两行。固定用希望红（见 style.css 的 .lock-open）。
+   lead 是这一行第一个字的起始时刻 —— 接在左侧两列的浮现之后 */
+const LOCK_OPEN = [
+  { sel: '#lock-open-l1', text: '为您开启封印了九十万六百六十六册幻书的迷宫书架', lead: 2330, step: 38 },
+  { sel: '#lock-open-l2', text: '通往睿智的门扉！',                                 lead: 3300, step: 62 },
+];
+
+let lockChecking = false;
+let lockMsgTimer = null;
+
+const lockDigits = () => [...$('#lock-grid').children];
+
+function lockSay(msg, kind) {
+  const el = $('#lock-msg');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'lock-msg' + (kind ? ' ' + kind : '');
+  clearTimeout(lockMsgTimer);
+  if (msg && kind === 'bad') {
+    lockMsgTimer = setTimeout(() => { el.textContent = ''; el.className = 'lock-msg'; }, 2600);
+  }
+}
+
+/* 竖排一列：逐字一个 span，好让每个字各自掌握出现的时机 */
+function buildLockLine(box, text, li) {
+  const p = document.createElement('p');
+  p.className = 'vline';
+  [...text].forEach((ch, ci) => {
+    const s = document.createElement('span');
+    s.textContent = ch;
+    if (ch === '，') s.classList.add('punct');
+    // 靠前的那一列（也是靠右的那一列）先出现，列内自上而下 —— 合起来就是按阅读顺序浮现
+    s.style.transitionDelay = (li * LOCK_LINE_GAP + ci * LOCK_LINE_STEP) + 'ms';
+    p.appendChild(s);
+  });
+  box.appendChild(p);
+}
+
+function buildLock() {
+  const grid = $('#lock-grid');
+  const total = LOCK_COLS * 2;
+  for (let i = 0; i < total; i++) {
+    const r = Math.floor(i / LOCK_COLS);
+    const inp = document.createElement('input');
+    inp.className = 'lock-digit';
+    inp.type = 'text';
+    inp.inputMode = 'numeric';
+    inp.maxLength = 1;
+    inp.autocomplete = 'off';
+    inp.setAttribute('aria-label', '第 ' + (r + 1) + ' 行第 ' + (i % LOCK_COLS + 1) + ' 位数字');
+    inp.addEventListener('input', () => {
+      inp.value = inp.value.replace(/\D/g, '').slice(0, 1);       // 只留数字
+      if (inp.value && i < total - 1) grid.children[i + 1].focus();
+      if (lockDigits().every(d => d.value)) lockCheck();          // 12 位填满即校验
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !inp.value && i > 0) grid.children[i - 1].focus();
+      if (e.key === 'Enter') lockCheck();
+    });
+    grid.appendChild(inp);
+  }
+  buildLockLine($('#lock-riddle'), LOCK_TEXT.riddle[0], 0);
+  buildLockLine($('#lock-riddle'), LOCK_TEXT.riddle[1], 1);
+  buildLockLine($('#lock-answer'), LOCK_TEXT.answer[0], 0);
+  buildLockLine($('#lock-answer'), LOCK_TEXT.answer[1], 1);
+
+  // 宣告逐字铺开，第二行接在第一行后面
+  LOCK_OPEN.forEach(line => {
+    const box = $(line.sel);
+    [...line.text].forEach((ch, i) => {
+      const s = document.createElement('span');
+      s.textContent = ch;
+      s.style.transitionDelay = (line.lead + i * line.step) + 'ms';
+      box.appendChild(s);
+    });
+  });
+}
+
+/* 每次拉开抽屉都重放一遍右侧两列的浮现。
+   这里不能用「摘掉类 → 强制重排 → 加回类」那套：它依赖浏览器把中间态
+   真的当成一次样式变化，而 .risen 只改后代的 opacity/transform，不触发布局，
+   实测第二次展开时浏览器并不重放过渡。
+   改用 Web Animations —— 每次都显式新建一条动画，必然从头播。
+   fill 用 backwards：延迟期间保持「藏着」的初态，播完交还给 CSS 的终态 */
+function riseRiddle() {
+  const lock = $('#poem-lock');
+  if (!lock) return;
+  lock.classList.add('risen');
+  [...lock.querySelectorAll('.lock-riddle .vline')].forEach((line, li) => {
+    [...line.children].forEach((s, ci) => {
+      s.getAnimations().forEach(a => a.cancel());     // 连点抽屉时先掐掉上一条
+      s.animate(
+        [{ opacity: 0, transform: 'translateY(7px)' },
+         { opacity: 1, transform: 'none' }],
+        { duration: 550, delay: li * LOCK_LINE_GAP + ci * LOCK_LINE_STEP, easing: 'ease', fill: 'backwards' }
+      );
+    });
+  });
+}
+
+async function lockCheck() {
+  if (lockChecking) return;
+  const digits = lockDigits();
+  const typed = digits.map(d => d.value).join('');
+  if (typed.length < digits.length) return;
+
+  lockChecking = true;
+  let got = '';
+  try { got = await sha256Hex(typed); } catch (e) { got = ''; }
+  lockChecking = false;
+
+  if (got === LOCK_HASH) { lockSay(''); lockSolve(); return; }
+
+  lockSay(GATE_WRONG, 'bad');
+  const box = $('#lock-center');
+  box.classList.remove('shake');
+  void box.offsetWidth;                                        // 重排，保证连错也能重复触发
+  box.classList.add('shake');
+  setTimeout(() => {
+    digits.forEach(d => { d.value = ''; });
+    digits[0].focus();
+  }, 430);
+}
+
+/* 解开的一刻。时间线全部压在 CSS 上（见 style.css 的 .lock-art 一段），是单行道：
+        0ms 两行密码消失、左侧两列浮现
+     1750ms 钥匙飞入（两列铺完之后才起飞）
+     2330ms 宣告铺第一行，3300ms 第二行，3750ms 末句弹一下
+     4500ms 钥匙拧转
+     5050ms 锁孔爆光
+     5450ms 一记长闪，锁层在闪光底下淡出、诗篇同时切出
+   这里只负责在最后那一刻点火 */
+const UNLOCK_END = 5450;
+
+function lockSolve() {
+  const lock = $('#poem-lock');
+  lock.classList.add('solved', 'lit');        // 左侧两列浮现，随后宣告与开锁同时上演
+  setTimeout(() => {
+    flashScreen(true, $('#lock-art'));         // 长闪：复用转化用的那一记，只是按住更久
+    lock.classList.add('done');                // 锁层在闪光下面退场，换诗篇上来
+    $('#poem').classList.remove('hidden');
+    setTimeout(() => lock.remove(), 900);
+  }, UNLOCK_END);
+}
+
+/* 抽屉拉开时才把焦点送进去。页面刚加载时主密码门还占着焦点，不去抢 */
+function focusLock() {
+  if (!$('#poem-lock') || $('#gate')) return;
+  const first = lockDigits().find(d => !d.value);
+  if (first) first.focus({ preventScroll: true });
+}
+
+/* ============================================================
    事件绑定与启动
    ============================================================ */
 function bindEvents() {
@@ -1325,6 +1498,8 @@ function init() {
     document.body.classList.add('no-scroll');
     buildGate(0);
   }
+  // 右侧抽屉的诗篇密码，与主密码门各自独立
+  if ($('#poem-lock')) buildLock();
   // 页头 / 合成台 / 诗篇三处魔法阵都改用图片素材（见 style.css），不再注入 SVG；
   // 只剩弹窗里那圈转化动效仍用 SVG
   $('.magic-overlay').innerHTML = MAGIC_RING;

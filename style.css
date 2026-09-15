@@ -532,6 +532,275 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .drawer-body .sec-title { font-size: 1.08rem; letter-spacing: .16em; text-indent: .16em; }
 .drawer-body .sec-sub { font-size: .74rem; margin-top: 8px; line-height: 1.8; }
 
+/* ============================================================
+   右侧抽屉的诗篇密码。
+   解开前 #poem 一直 display:none，抽屉里只剩这一层，
+   所以它不需要边框、也不需要底色 —— 抽屉本身就是它的背景。
+
+   竖排的字格高度取两行密码中心距的一半（--lk-text-pitch），各列再整体垂直居中于
+   两行的中线上。于是「吾问汝」三个字正好落在 第一行／两行中间／第二行，
+   其余各列按同一字距从这条中线往两边排。
+   行距要调就改 --lk-row-gap，字的间距会跟着走，对齐不会散。
+   ============================================================ */
+.drawer-lock {
+  --lk-digit-w: 46px;
+  --lk-digit-h: 52px;
+  --lk-col-gap: 10px;
+  --lk-row-gap: 30px;
+  --lk-pitch: calc(var(--lk-digit-h) + var(--lk-row-gap));   /* 两行中心的距离 */
+  --lk-text-pitch: calc(var(--lk-pitch) / 2);                /* 竖排的字距 */
+  --lk-side-gap: 44px;                  /* 密码框与两侧竖排文字的间距 */
+
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; justify-content: center;
+  padding: 24px 18px;
+  transition: opacity .7s ease;
+}
+/* 上下居中用 margin:auto，内容超高时不会把顶部裁掉 */
+.lock-center {
+  margin: auto 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+/* 两侧竖排文字的定位基准 = 密码框本身这一层。
+   不能直接用 .lock-center：下面那行宣告比密码框宽得多，会把容器撑开，
+   两列文字就会被挤出抽屉外面 */
+.lock-rows { position: relative; }
+/* 解开后整层退场，露出下面的诗篇 */
+.drawer-lock.done { opacity: 0; pointer-events: none; }
+
+/* ---------- 背景里的心锁 ----------
+   平时是抽屉里一个很淡的暗纹（别跟输入框抢），解开的一刻才亮起来。
+   整套动效挂在 .lit 上，靠 delay 排成一条单行道，一段接一段：
+        0ms  两行密码消失，左侧两列同时开始浮现（→1670）
+     1750ms  钥匙飞入（1750→2250）
+     2330ms  宣告铺第一行（每字 38ms，23 字 →3166）
+     3300ms  宣告铺第二行（每字 62ms， 8 字 →3734）
+     3750ms  末句弹一下（→4450）
+     4500ms  钥匙拧转（→5050）
+     5050ms  锁孔爆光（→5450）
+     5450ms  一记长闪，锁层在闪光底下淡出、诗篇同时切出
+   竖排文字的逐字间隔在 app.js 的 LOCK_LINE_STEP / LOCK_LINE_GAP；
+   钥匙那条的百分比 × 3700ms + 1750ms = 绝对时刻 */
+.lock-art {
+  position: absolute; left: 50%; top: 50%; z-index: 0;
+  /* 按抽屉高度定尺寸，不按宽度：底下那行宣告是钉在抽屉底端的固定高度，
+     锁若只跟宽度走，窗口一矮两者就会撞上 */
+  height: min(48%, 460px);
+  aspect-ratio: 666 / 900;
+  transform: translate(-50%, -50%);
+  background: url('./asserts/lock.png') center / contain no-repeat;
+  opacity: .24; pointer-events: none;
+  transition: opacity .9s ease, filter .9s ease, transform 1.1s ease;
+}
+.drawer-lock.lit .lock-art {
+  opacity: .95;
+  transform: translate(-50%, -50%) scale(1.06);
+  filter: drop-shadow(0 0 34px rgba(198, 42, 58, .45));
+}
+
+/* 锁孔里爆出来的那团光 */
+.lock-art-glow {
+  position: absolute; left: 48.6%; top: 58.4%; z-index: 1;
+  width: 64%; aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(.15);
+  border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle,
+              rgba(255, 238, 214, .95) 0%,
+              rgba(226, 92, 86, .5) 28%,
+              rgba(198, 42, 58, 0) 66%);
+}
+.drawer-lock.lit .lock-art-glow { animation: keyholeBloom 400ms ease-out 5050ms both; }
+@keyframes keyholeBloom {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.15); }
+  35%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: .9; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+/* 钥匙。外层负责飞入与「推进去」的位移，内层只负责绕尖端旋转 ——
+   拆成两层是因为 transform 一次只能被一条动画接管 */
+.lock-key {
+  position: absolute; left: 48.6%; top: 58.4%; z-index: 2;
+  width: 28%; aspect-ratio: 475 / 1200;
+  transform: translate(-50%, -100%);
+  perspective: 760px;                          /* 给拧转的 3D 一点纵深 */
+  opacity: 0; pointer-events: none;
+}
+.lock-key-body {
+  width: 100%; height: 100%;
+  background: url('./asserts/key.png') center / contain no-repeat;
+  transform-origin: 50% 100%;                  /* 绕尖端这根竖轴转，即「插在锁孔里拧」 */
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .55));
+}
+/* 钥匙外层要走完 1400→4800 整条线：飞入 → 停在锁孔上等宣告铺完 → 推入 → 拧 → 沉进锁孔。
+   一条动画包办是因为 transform 一次只能被一条动画接管 */
+.drawer-lock.lit .lock-key      { animation: keyFly  3700ms linear 1750ms both; }
+.drawer-lock.lit .lock-key-body { animation: keyTurn  550ms cubic-bezier(.4, .05, .3, 1) 4500ms both; }
+
+/* 百分比 × 3700ms + 1750ms = 绝对时刻（见上方时间线） */
+@keyframes keyFly {
+  0%    { opacity: 0; transform: translate(-50%, -100%) translate(210px, -46px) rotate(-38deg) scale(1.35);
+          animation-timing-function: cubic-bezier(.2, .9, .25, 1); }      /* 1750 飞入起始 */
+  13.5% { opacity: 1; transform: translate(-50%, -100%) translate(0, 0)         rotate(0deg)   scale(1);
+          animation-timing-function: linear; }                            /* 2250 到位，停在锁孔上等宣告 */
+  74%   { opacity: 1; transform: translate(-50%, -100%) translate(0, 0)         rotate(0deg)   scale(1);
+          animation-timing-function: ease-out; }                          /* 4488 宣告铺完 */
+  78%   { opacity: 1; transform: translate(-50%, -100%) translate(0, 7px)       rotate(0deg)   scale(1);
+          animation-timing-function: linear; }                            /* 4636 往里推到底 */
+  89%   { opacity: 1; transform: translate(-50%, -100%) translate(0, 7px)       rotate(0deg)   scale(1);
+          animation-timing-function: ease-in; }                           /* 5043 拧完 */
+  100%  { opacity: 0; transform: translate(-50%, -100%) translate(0, 36px)      rotate(0deg)   scale(.46); }
+                                                                          /* 5450 沉进锁孔 */
+}
+/* 绕自身长轴转半圈：钥匙始终插在锁孔里，不会甩到锁外面去 */
+@keyframes keyTurn {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(180deg); }
+}
+
+/* 一答对，两行密码立刻让位（这一刻锁也同时亮起来） */
+.drawer-lock.lit .lock-grid { animation: gridAway 520ms ease-in both; }
+@keyframes gridAway {
+  0%   { opacity: 1; transform: scale(1);     filter: blur(0); }
+  100% { opacity: 0; transform: scale(.88);   filter: blur(6px); }
+}
+
+/* ---------- 两行密码 ---------- */
+.lock-grid {
+  display: grid;
+  grid-template-columns: repeat(6, var(--lk-digit-w));
+  gap: var(--lk-row-gap) var(--lk-col-gap);
+}
+/* 与主页密码门同款：同样用 gate-* 那套色。
+   之前边框用的是通用的 --line，比 --gate-line 淡一大截，格子看着是虚的 */
+.lock-digit {
+  width: var(--lk-digit-w); height: var(--lk-digit-h);
+  border-radius: 13px; border: 1px solid var(--gate-line);
+  background: var(--gate-field); color: var(--gate-ink);
+  font-family: var(--font-title); font-size: 1.5rem; text-align: center;
+  outline: none; caret-color: var(--mode-color);
+  transition: border-color .3s, box-shadow .3s, transform .3s, color .3s;
+}
+.lock-digit:focus {
+  border-color: var(--mode-color); transform: translateY(-2px);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+.lock-msg {
+  margin-top: 14px; min-height: 1.7em; text-align: center;
+  font-size: .84rem; letter-spacing: .08em; line-height: 1.7;
+  transition: color .3s;
+}
+.lock-msg.bad { color: var(--gate-red); }
+.lock-center.shake { animation: shake .5s; }
+
+/* ---------- 竖排两列文字 ----------
+   绝对定位挂在密码框两侧，整体垂直居中于两行的中线。
+   这个「中线」是两行中心的中点，也就是密码框自身的中线：让各列都居中到它上面，
+   三字的列自然就落在 第一行／中／第二行；字数不同的列则从这条线往两边均分。
+   两侧都用 row-reverse：DOM 里靠前的那一列排在右边，读起来从右向左 */
+.lock-side {
+  position: absolute;
+  top: calc(var(--lk-digit-h) + var(--lk-row-gap) / 2);   /* 密码框的中线 */
+  transform: translateY(-50%);
+  display: flex; align-items: center; gap: 16px;
+}
+.lock-answer { right: calc(100% + var(--lk-side-gap)); flex-direction: row-reverse; }
+.lock-riddle { left: calc(100% + var(--lk-side-gap)); flex-direction: row-reverse; }
+.lock-side .vline { display: flex; flex-direction: column; }
+.lock-side .vline span {
+  height: var(--lk-text-pitch);         /* 字格高度 = 两行中心距的一半，对齐就靠这个 */
+  display: grid; place-items: center;
+  font-family: var(--font-title); font-size: 1.3rem; line-height: 1;
+  color: var(--ink); white-space: nowrap;
+}
+/* 竖排里的逗号该落在字格的右上，而横排字形的墨迹在左下 —— 挪过去。
+   用 position:relative 的 top/left 而不是 transform：浮现动画占着 transform */
+.lock-side .vline span.punct { position: relative; top: -.7em; left: .32em; }
+
+/* 两侧的竖排文字同一个待遇：平时藏着，展开抽屉／答对时按阅读顺序一个个浮现。
+   两边同色，不区分问与答。
+   区别只在于「怎么重放」：问句每次拉开抽屉都要演一遍，交给 JS 用 Web Animations 驱动
+   （见 riseRiddle 的注释），所以这里不挂 transition；答句只演一次，CSS 过渡就够 */
+.lock-riddle .vline span,
+.lock-answer .vline span {
+  color: var(--mode-color);
+  text-shadow: 0 0 18px var(--glow);
+  opacity: 0; transform: translateY(7px);
+}
+.lock-answer .vline span { transition: opacity .55s ease, transform .55s ease; }
+.drawer-lock.risen   .lock-riddle .vline span { opacity: 1; transform: none; }
+.drawer-lock.solved .lock-answer .vline span { opacity: 1; transform: none; }
+
+/* ---------- 解开封印的宣告 ----------
+   固定用希望红，不跟随卡组 —— 这是「最重要的一张」的颜色。
+   两行：长句在前，末句单独一行、更大更重。
+   浮现做得比别处重：逐字从模糊里凝出来并升起，末句的间距由宽收到常宽，
+   落定的同时红光炸一下，背后再涨起一团红光 */
+.lock-open {
+  position: absolute; left: 20px; right: 20px; z-index: 3;
+  /* 垂直居中于「锁的下沿」与「抽屉下沿」之间，而不是贴着最底下。
+     锁心落在抽屉中线、缩放后高 min(48%,460px)×1.06，
+     所以锁的下沿在 75% 处再加 1/4 个锁高，取这条线的中点即可 */
+  top: calc(75% + min(12.72%, 122px));
+  transform: translateY(-50%);
+  padding-bottom: 9px;
+  font-family: var(--font-title);
+  text-align: center; color: var(--hope-red);
+}
+/* 末句落定后，底下收一道红线，像落款 */
+.lock-open::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; z-index: 1;
+  width: 66%; height: 1px;
+  transform: translateX(-50%) scaleX(0);
+  background: linear-gradient(90deg, transparent,
+              var(--hope-red) 22%, var(--hope-red) 78%, transparent);
+  transition: transform 1s cubic-bezier(.2, 1, .3, 1) 2.3s;
+}
+.drawer-lock.lit .lock-open::after { transform: translateX(-50%) scaleX(1); }
+
+/* 宣告压在锁身上，背后是明暗交错的金饰 —— 借页面现成的 --halo 描一圈边把它托出来。
+   辉光改用 filter: drop-shadow（见 hopeBurst），这样描边不会被动画覆盖掉 */
+.lock-open p {
+  position: relative; z-index: 1;
+  text-shadow: 2px 0 0 var(--halo), -2px 0 0 var(--halo),
+               0 2px 0 var(--halo), 0 -2px 0 var(--halo),
+               1px 1px 0 var(--halo), -1px -1px 0 var(--halo),
+               1px -1px 0 var(--halo), -1px 1px 0 var(--halo);
+}
+.lock-open-l1 { font-size: 1.3rem; line-height: 1.9; letter-spacing: .12em; }
+.lock-open-l2 {
+  margin-top: 2px;
+  font-size: 1.8rem; font-weight: 700; line-height: 1.7;
+  letter-spacing: .5em;                        /* 由宽收到常宽，落定时更有分量 */
+  transition: letter-spacing 1s cubic-bezier(.2, 1, .3, 1) 2.2s;
+}
+.drawer-lock.lit .lock-open-l2 { letter-spacing: .2em; }
+
+/* 逐字：从模糊里凝出来，一边升起一边收实 */
+.lock-open span {
+  display: inline-block; opacity: 0;
+  filter: blur(8px);
+  transform: translateY(12px) scale(1.06);
+  transition: opacity .5s ease,
+              filter .65s ease,
+              transform .8s cubic-bezier(.2, 1.3, .4, 1);
+}
+.drawer-lock.lit .lock-open span { opacity: 1; filter: blur(0); transform: none; }
+
+/* 末句落定的一刻：往外撑一下再收回来。
+   刻意不带辉光 —— 文字背后那团红光已经去掉了，这里只留动作 */
+.drawer-lock.lit .lock-open-l2 { animation: hopeBurst 700ms cubic-bezier(.2, 1.2, .3, 1) 3.75s both; }
+@keyframes hopeBurst {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+/* 窗口矮的时候把行距收一收，整组还是一起缩，不破坏对齐 */
+@media (max-height: 720px) {
+  .drawer-lock { --lk-digit-h: 44px; --lk-row-gap: 22px; --lk-side-gap: 30px; }
+  .lock-side .vline span { font-size: 1.15rem; }
+}
+
 /* --- 左侧：合成台改成竖排，整体缩小一档以适配抽屉 --- */
 .drawer-left .ritual {
   flex-direction: column; gap: 14px; margin-top: 20px;

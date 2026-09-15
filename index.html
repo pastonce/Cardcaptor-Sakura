@@ -104,7 +104,43 @@
       <span class="drawer-tab-text" id="tab-right-text">✦◼◼◼◼◼✦</span>
     </button>
     <div class="drawer-body" id="drawer-right-body">
-      <section id="poem" aria-label="你手捧希望而来">
+      <!-- 诗篇的密码。解开前 #poem 一直是 display:none（下面那个 hidden 类），
+           所以这一层不需要自己的框 —— 整个抽屉就是它的背景，
+           诗篇的内容也没有任何漏出来的可能。
+           左侧那两列是解开后才浮现的，先把位置占着，免得解开时整块布局跳一下 -->
+      <div class="drawer-lock" id="poem-lock" role="dialog" aria-modal="true" aria-label="输入密码">
+        <!-- 背景里的心锁。平时只是抽屉里的一个暗纹；解开的一刻钥匙飞进来插进锁孔拧一圈。
+             钥匙的尖端按锁孔在 lock.png 里的实测位置（48.6% / 58.4%）对位 -->
+        <div class="lock-art" id="lock-art" aria-hidden="true">
+          <div class="lock-art-glow"></div>
+          <div class="lock-key" id="lock-key"><div class="lock-key-body"></div></div>
+        </div>
+
+        <div class="lock-center" id="lock-center">
+          <!-- 两列竖排文字以「密码框这一层」为基准（绝对定位，不参与这里的排版）。
+               缩到 .lock-rows 里面是必须的：外面还挂着一行很长的宣告，
+               若两列直接以 .lock-center 为基准，那行字会把容器撑宽，把两列挤出抽屉 -->
+          <div class="lock-rows">
+            <div class="lock-side lock-answer" id="lock-answer" aria-hidden="true"></div>
+
+            <div class="lock-grid" id="lock-grid"></div>
+
+            <div class="lock-side lock-riddle" id="lock-riddle" aria-hidden="true"></div>
+          </div>
+
+          <p class="lock-msg" id="lock-msg" role="status" aria-live="polite"></p>
+        </div>
+
+        <!-- 解开封印之后的宣告：两行，逐字凝出，固定用希望红。
+             钉在抽屉底端而不是跟在密码框后面 —— 锁的图案占了大半个抽屉，
+             跟在后面会被压在锁身上，读不清 -->
+        <div class="lock-open" id="lock-open" aria-live="polite">
+          <p class="lock-open-l1" id="lock-open-l1"></p>
+          <p class="lock-open-l2" id="lock-open-l2"></p>
+        </div>
+      </div>
+
+      <section id="poem" class="hidden" aria-label="你手捧希望而来">
         <p class="sec-sub"><strong>或许</strong>，将汝等拥有的卡牌献上，见证佚失的诗篇被颂唱</p>
 
         <div class="poem-circle" id="poem-circle">
