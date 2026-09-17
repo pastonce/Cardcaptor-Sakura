@@ -11,18 +11,8 @@ const SAKURA_DIR = ASSETS + 'sakura/';
 const C_BACK     = ASSETS + 'ClowCardSideB.jpeg';    // 库洛牌统一卡背
 const S_BACK     = ASSETS + 'SakuraCardSideB.jpeg';  // 小樱牌统一卡背
 
-/* 魔法阵 SVG（头部背景 / 转化仪式 / 合成仪式 共用） */
-const MAGIC_RING = `
-<svg viewBox="0 0 240 240" aria-hidden="true">
-  <g fill="none" stroke="currentColor">
-    <circle cx="120" cy="120" r="112" stroke-width="2"/>
-    <circle cx="120" cy="120" r="104" stroke-width="1" stroke-dasharray="3 7"/>
-    <circle cx="120" cy="120" r="70" stroke-width="1"/>
-    <circle cx="120" cy="120" r="58" stroke-width="1" stroke-dasharray="2 5"/>
-    <path stroke-width="1.5" d="M120 14 L145 61 L195 45 L179 96 L226 120 L179 144 L195 195 L145 179 L120 226 L95 179 L45 195 L61 144 L14 120 L61 96 L45 45 L95 61 Z"/>
-    <circle cx="120" cy="120" r="18" stroke-width="1.5"/>
-  </g>
-</svg>`;
+/* 魔法阵素材见 magic-circle.css：头部、诗篇、合成台、单张转化四处都改用
+   同一份图片线稿（底色 + mask），不再手描 SVG */
 
 /* ---------- 52 张一一对应的卡牌（按动画中的收服顺序） ---------- */
 const CARDS = [
@@ -254,13 +244,21 @@ function setDrawer(side, open) {
   const el = drawers[side];
   if (!el) return;
   el.classList.toggle('open', open);
+  // 两块面板可以同时开着，所以层级要递增：后点开的那一侧永远在上面
+  if (open) el.style.zIndex = ++drawerZ;
+  else el.style.zIndex = '';
   const tab = el.querySelector('.drawer-tab');
   if (tab) tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // 收起抽屉就取消「卡槽等着接牌」的状态（提示也随之消失）
+  if (!open && armedSlot && armedSlot.closest('.drawer') === el) disarmSlot();
+  syncDock();
+  musicSyncDuck();   // 抽屉一开一合，BGM 跟着蒙上 / 放开
   // 诗篇抽屉一拉开就重放竖排文字的浮现，并把光标送进密码框（已解锁则都不做）
   if (side === 'right' && open) { riseRiddle(); focusLock(); }
 }
 const isDrawerOpen = side => !!drawers[side] && drawers[side].classList.contains('open');
 const autoOpened = { left: false, right: false };   // 记录「是拖牌顺手拉开的」，便于离开时收回
+let drawerZ = 700;                                  // 抽屉层级，每拉开一次加一
 
 function toggleDrawer(side) {
   autoOpened[side] = false;                         // 手动操作过，就不再自动收回
@@ -354,6 +352,8 @@ function buildGrid() {
       </div>`;
     const zone = el.querySelector('.flip-zone');
     zone.addEventListener('click', () => {
+      // 手机端：卡槽正等着接牌时，点牌是「放进去」而不是翻面
+      if (isMobile() && armedSlot) { placeArmed(payloadOf(el)); return; }
       if (performance.now() < suppressClickUntil) return;
       flipCard(el);
     });
@@ -387,6 +387,8 @@ function buildGrid() {
       </div>`;
     const zone = el.querySelector('.flip-zone');
     zone.addEventListener('click', () => {
+      // 手机端：卡槽正等着接牌时，点牌是「放进去」而不是翻面
+      if (isMobile() && armedSlot) { placeArmed(payloadOf(el)); return; }
       if (performance.now() < suppressClickUntil) return;
       flipCard(el);
     });
@@ -413,6 +415,7 @@ function morphAll(target) {
   mode = target;
   save('mode', target);
   updateModeUI();
+  musicSwitch(target);                   // 换卡组就换曲子：上一首淡出、空一段再起
 
   const toSakura = target === 'sakura';
   document.body.classList.toggle('to-sakura', toSakura);   // 转化波纹换成小樱粉
@@ -518,6 +521,7 @@ function payloadOf(cardEl) {
 /* cardElOverride 用于非图鉴卡片（如合成台上的希望牌） */
 function attachDrag(zoneEl, cardElOverride) {
   zoneEl.addEventListener('pointerdown', e => {
+    if (isMobile()) return;                        // 手机端不拖牌，改成「先点卡槽再点牌」
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.target.closest('.detail-btn')) return;
     const cardEl = cardElOverride || zoneEl.closest('.card');
@@ -890,9 +894,21 @@ const CRIT_AT = 2600;              // 第六次闪光：临界一击（与第五
 const CRIT_MS = 1500;              // 它的持续时间比平时长，之后「今夜我爱你」才现身
 const QUAKE_MS = 1100;             // 单次震动时长，与 CSS 里 quake 动画一致
 
+/* ---------- 震翻图鉴：牌的转向与逐张的错开间隔（两端共用） ----------
+   转向：两端各绕自己的轴「先让一侧向后倒」，看上去才是同一个动作 ——
+         桌面绕竖轴 → 右沿先向前倒，牌从右向左转
+         手机绕横轴 → 上沿先向前倒，牌从上到下转
+         两端共用这一个符号（负角），要整个调头只改它，两边会一起跟着变 */
+const FLIP_DIR  = -1;
+/* 每张牌比前一张晚这么多毫秒开始。翻一张本身要 700ms（见 style.css 的 .flip-inner），
+   间隔取到这段量级，一整排铺开的时间才约等于翻一张的时间 —— 看上去是一道推过去的波，
+   而不是哗地一起翻。两端同一个值 */
+const FLIP_STEP = 120;
+
 function finishPoem() {
   const circle = $('#poem-circle');
   document.body.classList.add('petals-still');   // 仪式期间花瓣静止
+  setDrawer('left', false);                      // 仪式开始，合成台让位给诗篇
 
   const reveal = () => {
     // 从当前实际角度接续减速，避免动画换挡时角度突跳
@@ -926,7 +942,7 @@ function finishPoem() {
 
     pulseQuake(circle, 1100);
     // 震动峰值在动画的 8% 处（约 90ms），让图鉴的翻牌与那一击同步
-    setTimeout(quakeFlipGallery, 100);
+    setTimeout(quakeFlip, 100);
     burst(lx, ly, { count: 40, hearts: true });
     setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 430);
     setTimeout(() => burst(lx, ly, { count: 48, hearts: true }), 900);
@@ -944,7 +960,7 @@ function finishPoem() {
       pulseQuake(circle, QUAKE_MS);
       revealPoemPart(i === 0 ? 'title' : POEM_TARGETS[i - 1].key);
       // 第五次震动：顺手把图鉴震翻一次（最后一次震动时会再翻一次，正好转回原面）
-      if (i === 4) setTimeout(quakeFlipGallery, 100);
+      if (i === 4) setTimeout(quakeFlip, 100);
     }, at));
 
     // 第六次闪光：临界一击，比前面几次亮得更久
@@ -970,10 +986,11 @@ const circleCenter = () => {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 };
 
-/* 震翻图鉴：把当前搜索结果里可见的牌，按「每行自右向左」依次翻一次（逆时针）。
+/* 震翻图鉴（电脑端）：把当前搜索结果里可见的牌，按「每行自右向左」依次翻一次。
    先按 offsetTop 分行（网格行对齐，同一行的值完全相同），
    各行内部从右往左错开，但**各行同时开始** —— 是横着一排排推过去，
-   不是翻完上一行再翻下一行。
+   不是翻完上一行再翻下一行。牌本身也朝同一个方向转（见 FLIP_DIR）：
+   朝同一个方向转（见 FLIP_DIR），于是「推过去的方向」和「牌转的方向」是一致的。
    在第五次震动与最后一次震动各调一次，两次各 180°，合起来正好转回原来那一面 */
 function quakeFlipGallery() {
   const rows = new Map();
@@ -988,7 +1005,7 @@ function quakeFlipGallery() {
   rows.forEach(row => {
     row.map(el => ({ el, left: el.getBoundingClientRect().left }))
        .sort((a, b) => b.left - a.left)              // 本行内从右往左
-       .forEach(({ el }, i) => setTimeout(() => flipCard(el, -1), i * 60));
+       .forEach(({ el }, i) => setTimeout(() => flipCard(el, FLIP_DIR), i * FLIP_STEP));
   });
 }
 
@@ -1047,11 +1064,21 @@ function resetPoem() {
 }
 
 let toastTimer = null;
-function toast(msg) {
+let toastSticky = false;   // 当前这条提示是不是常驻的
+/* sticky=true 时一直挂着，直到 toastHide() —— 卡槽等着接牌时的提示要一直看得见 */
+function toast(msg, sticky) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
+  document.body.classList.add('toast-on');   // 手机端：转化按钮给提示条让位（见 style.css）
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  toastSticky = !!sticky;
+  if (!sticky) toastTimer = setTimeout(toastHide, 1800);
+}
+function toastHide() {
+  clearTimeout(toastTimer);
+  toastSticky = false;
+  toastEl.classList.remove('show');
+  document.body.classList.remove('toast-on');
 }
 
 /* ============================================================
@@ -1114,6 +1141,10 @@ function morphModal() {
   const toSakura = modalSide !== 'sakura';
   const cardEl = modalEl.querySelector('.modal-card');
   const r = cardEl.getBoundingClientRect();
+  // 爆出来的那圈阵取「转去哪一面」的那一份：转小樱牌是樱阵、转回库洛牌是库洛阵。
+  // 这里只标出方向，具体用哪张素材、配什么颜色都在 style.css 里。
+  // 必须赶在 .morphing 之前写好，动画一开始读的就是它
+  cardEl.dataset.morph = toSakura ? 'sakura' : 'clow';
   burst(r.left + r.width / 2, r.top + r.height / 2, { count: 24 });
   cardEl.classList.add('morphing');
   setTimeout(() => {
@@ -1170,8 +1201,10 @@ function flashScreen(hold, origin) {
   f.className = 'screen-flash' + (hold ? ' hold' : '');
   if (origin) {
     const r = origin.getBoundingClientRect();
-    f.style.setProperty('--fx', (r.left + r.width / 2) + 'px');
-    f.style.setProperty('--fy', (r.top + r.height / 2) + 'px');
+    // 起点若不在视野里（手机端抽屉正收着时就够不着），退回屏幕中心，免得闪在屏幕外
+    const vis = r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+    f.style.setProperty('--fx', (vis ? r.left + r.width / 2 : window.innerWidth / 2) + 'px');
+    f.style.setProperty('--fy', (vis ? r.top + r.height / 2 : window.innerHeight * .45) + 'px');
   }
   document.body.appendChild(f);
   setTimeout(() => f.remove(), hold ? 1600 : 1200);
@@ -1281,6 +1314,10 @@ function gateUnlock() {
   // 整块淡出即可，页头那颗本来就在后面等着
   g.classList.add('done');
   document.body.classList.remove('no-scroll');
+  // 音乐圆钮从海报上那本书挪到页面角落，门里那首淡出、换成当前卡组的曲子
+  document.body.classList.remove('gate-up');
+  placeMusicButton();
+  musicSwitch(mode);
   setTimeout(() => g.remove(), 900);
 }
 
@@ -1306,7 +1343,7 @@ const LOCK_TEXT = {
 /* 答对之后在密码正下方打出来的宣告，分两行。固定用希望红（见 style.css 的 .lock-open）。
    lead 是这一行第一个字的起始时刻 —— 接在左侧两列的浮现之后 */
 const LOCK_OPEN = [
-  { sel: '#lock-open-l1', text: '为您开启封印了九十万六百六十六册幻书的迷宫书架', lead: 2330, step: 38 },
+  { sel: '#lock-open-l1', text: '为您开启封印了九十万零六百六十六册幻书的迷宫书架', lead: 2330, step: 38 },
   { sel: '#lock-open-l2', text: '通往睿智的门扉！',                                 lead: 3300, step: 62 },
 ];
 
@@ -1456,6 +1493,380 @@ function focusLock() {
 }
 
 /* ============================================================
+   手机端（≤700px）
+   桌面端的交互一概不动，这里只加一条并行路径：
+   把「拖牌到卡槽」换成「先点卡槽、再点牌」。
+   所有手机端分支都以 isMobile() 开头，桌面端走不到。
+   ============================================================ */
+const MOBILE_Q = window.matchMedia('(max-width: 700px)');
+const isMobile = () => MOBILE_Q.matches;
+
+let armedSlot = null;          // 已被点选、等着接牌的卡槽
+
+/* 点选一个卡槽：再点一次取消；换点别的卡槽则改选那个 */
+function armSlot(slot) {
+  if (armedSlot === slot) { disarmSlot(); return; }
+  disarmSlot();
+  armedSlot = slot;
+  slot.classList.add('arming');
+  document.body.classList.add('picking');
+  // 抽屉不收：阵心要的那张牌在左侧抽屉里，用户自己拉开那一侧点它就是了
+  toast('点击一张卡牌放入卡槽', true);
+}
+
+function disarmSlot() {
+  if (armedSlot) armedSlot.classList.remove('arming');
+  armedSlot = null;
+  document.body.classList.remove('picking');
+  if (toastSticky) toastHide();
+}
+
+/* 选中的牌归到相应卡槽，然后把抽屉重新拉开让用户看到结果 */
+function placeArmed(payload) {
+  const slot = armedSlot;
+  if (!slot || !payload) return false;
+  disarmSlot();
+  if (slot.classList.contains('poem-slot')) handlePoemDrop(payload, slot);
+  else                                      handleDrop(payload, slot);
+  return true;
+}
+
+/* 手机端的震翻：按「图鉴每列」分组，列内自上而下依次翻，各列同时开始。
+   翻转轴换成横轴（上下翻，像翻日历）—— 由 #grid.axis-x 切到 rotateX。
+   牌本身也朝同一个方向转（见 FLIP_DIR），于是「推下去的方向」
+   和「牌转的方向」是一致的。两下翻完（共 360°）正好转回原面 */
+let axisXTimer = null;
+function quakeFlipGalleryMobile() {
+  const cols = new Map();
+  $$('#grid .card')
+    .filter(el => !el.classList.contains('hidden'))
+    .forEach(el => {
+      const key = el.offsetLeft;
+      if (!cols.has(key)) cols.set(key, []);
+      cols.get(key).push(el);
+    });
+
+  gridEl.classList.add('axis-swap', 'axis-x');
+  /* 逼一次样式重算，好让 rotateX(--flip) 在「过渡关着」的状态下当场定下来。
+     不加这一下的话，加类和写 --flip 会并进同一次样式变更，浏览器看到的起点还是
+     换轴之前的 rotateY，于是又退回矩阵插值 —— 前面那步就白做了 */
+  void gridEl.offsetWidth;
+  gridEl.classList.remove('axis-swap');
+  let tallest = 0;
+  cols.forEach(col => {
+    tallest = Math.max(tallest, col.length);
+    col.map(el => ({ el, top: el.getBoundingClientRect().top }))
+       .sort((a, b) => a.top - b.top)              // 本列内自上而下
+       .forEach(({ el }, i) => setTimeout(() => flipCard(el, FLIP_DIR), i * FLIP_STEP));
+  });
+  // 全部翻完再把轴换回去。必须清掉上一次的定时器：一列十几张牌翻完要 2s 上下，
+  // 而两次震翻之间只隔 2.1s，上一次的收尾会正好落在下一次的中途，
+  // 把轴从 rotateX 拽回 rotateY —— 第二遍翻到一半会当场改轴。
+  // 摘轴这一下同样得关着过渡：起点是 rotateX(--flip)、终点却变回 rotateY(--flip)，
+  // 又是一次矩阵插值。用户点过的那张牌（翻过奇数次）停在 -180°，
+  // 两边的矩阵差着 180°，收尾时就会再转一圈 —— 没点过的牌停在 -360°（单位矩阵）才看不出来。
+  // 牌背自带补偿，切过去是瞬时的、也看不出来
+  clearTimeout(axisXTimer);
+  axisXTimer = setTimeout(() => {
+    gridEl.classList.add('axis-swap');
+    gridEl.classList.remove('axis-x');
+    void gridEl.offsetWidth;
+    gridEl.classList.remove('axis-swap');
+  }, tallest * FLIP_STEP + 900);
+}
+
+/* 手机端：只要有一侧抽屉开着，底部就浮出搜索条。
+   两个搜索框是同一份内容 —— 不管在哪个里打字，另一个立刻跟上 */
+function syncDock() {
+  const dock = $('#search-dock'), m = $('#search-m');
+  if (!dock || !m) return;
+  const show = isMobile() && (isDrawerOpen('left') || isDrawerOpen('right'));
+  dock.classList.toggle('show', show);
+  document.body.classList.toggle('dock-open', show);
+  if (m.value !== searchEl.value) m.value = searchEl.value;
+  const cm = $('#count-m');
+  if (cm) {
+    cm.textContent = countEl.textContent;   // 文案
+    cm.className = countEl.className;       // 连同 revealed 一起搬：密语命中时两边一起变色
+  }
+}
+
+/* ============================================================
+   背景音乐
+   ------------------------------------------------------------
+   · 密码门里放 Cras numquam scire；进门后按当前卡组放（库洛 / 小樱各一首）
+   · 三首都是循环，但不是无缝接：一遍快放完时先淡出，静默一段再从头上，
+     换曲（进门、切卡组）同样是先淡出、留一段空白再起新曲子
+   · 点按钮是播放/暂停来回切
+   · 抽屉展开时给 BGM 蒙一层：音量压低 + 挂一级低通（见下面的 musicSetDuck）
+   ============================================================ */
+const MUSIC = {
+  gate:   { src: ASSETS + 'music/Cras numquam scire.mp3', name: 'Cras numquam scire' },
+  clow:   { src: ASSETS + 'music/夜の歌.mp3',             name: '夜の歌' },
+  sakura: { src: ASSETS + 'music/さくらのテーマ2.mp3',     name: 'さくらのテーマ2' },
+};
+const MUSIC_VOL  = 0.25;    // 背景音乐，压着点，别盖过页面本身
+const MUSIC_FADE = 2400;    // 一遍收尾的淡出时长
+const MUSIC_GAP  = 3600;    // 两遍之间、以及换曲之间的静默
+const MUSIC_CUT  = 1400;    // 换曲时把上一首掐掉的淡出时长
+const MUSIC_DUCK = 0.42;    // 被抽屉蒙住时的音量倍数
+const MUSIC_MUFFLE_HZ = 750;  // 蒙住时的低通截止：只留下闷闷的中低频
+const MUSIC_DUCK_MS   = 460;  // 蒙上/放开的过渡时长
+
+/* 低通这一级只有非 file:// 才挂得上。
+   file:// 下 Chrome 把本地文件当跨源：createMediaElementSource 之后输出**直接变静音**
+   （captureStream 更干脆，直接抛 SecurityError）—— 两条路都实测过。
+   所以本地双击打开时就只有「压低音量」这一半，放到 http(s) 上才是完整的蒙住效果 */
+const MUSIC_CAN_FILTER = location.protocol !== 'file:';
+
+let musicEl    = null;      // 当前这一个 <audio>
+let musicKey   = null;      // 当前该放哪一首（MUSIC 的键）
+let musicPaused = false;    // 用户按了暂停（再按一下就接着放）
+let musicTimers = [];
+let musicFadeTimer = null;
+let musicUnmuteArmed = false;   // 静音起播中，等第一次动手把静音解开
+let musicPlayArmed  = false;    // 连静音起播都没成的兜底：等第一次动手再放
+let musicDucked = false;        // 抽屉开着：当前是否处于「蒙住」状态
+let musicCtx = null;            // Web Audio 上下文（挂低通用）
+let musicFilter = null;         // 那一级低通
+
+const musicBtn = $('#music-btn');
+
+/* 没有用户手势时 AudioContext 是挂起的，挂起就等于没声音（元素接进图之后，
+   直出已经被掐断），所以每条「用户动手」的路径上都要顺手唤醒它 */
+const musicWakeCtx = () => {
+  if (musicCtx && musicCtx.state !== 'running') musicCtx.resume().catch(() => {});
+};
+
+function musicClearTimers() {
+  musicTimers.forEach(clearTimeout);
+  musicTimers = [];
+  if (musicFadeTimer) { clearInterval(musicFadeTimer); musicFadeTimer = null; }
+}
+const musicLater = (ms, fn) => { musicTimers.push(setTimeout(fn, ms)); };
+
+/* 当前该有的音量：基础音量 × 蒙住的倍数。
+   音量统一走这个函数，淡出/淡入才能和「蒙住」叠加而不是互相打架 */
+const musicBaseVol = () => MUSIC_VOL * (musicDucked ? MUSIC_DUCK : 1);
+
+/* 把音量在 ms 内线性推到 target，推完调 done（淡出就是把 target 设成 0） */
+function musicRampTo(el, target, ms, done) {
+  if (musicFadeTimer) clearInterval(musicFadeTimer);
+  const from = el.volume, t0 = performance.now();
+  musicFadeTimer = setInterval(() => {
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    el.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+    if (k >= 1) { clearInterval(musicFadeTimer); musicFadeTimer = null; done && done(); }
+  }, 40);
+}
+function musicFadeOut(el, ms, done) { musicRampTo(el, 0, ms, done); }
+
+/* 按钮的状态：转不转、暗不暗、悬停显示什么 */
+function musicRefreshBtn() {
+  if (!musicBtn) return;
+  musicBtn.classList.toggle('playing', !musicPaused && !!musicKey);
+  musicBtn.classList.toggle('paused', musicPaused);
+  const label = musicKey
+    ? MUSIC[musicKey].name + (musicPaused ? ' · 已暂停，点击继续' : ' · 点击暂停')
+    : '背景音乐';
+  musicBtn.title = label;
+  musicBtn.setAttribute('aria-label', label);
+}
+
+/* 给这个 <audio> 挂上低通那一级。
+   音量仍由 el.volume 管 —— 实测元素音量会一并作用到图输出上，
+   所以滤波器只管音色，两边的「音量」不会打架 */
+function musicAttachFilter(el) {
+  if (!MUSIC_CAN_FILTER || !el) return;
+  try {
+    if (!musicCtx) musicCtx = new AudioContext();
+    if (!musicFilter) {
+      musicFilter = musicCtx.createBiquadFilter();
+      musicFilter.type = 'lowpass';
+      musicFilter.frequency.value = 20000;     // 20000 = 形同虚设，等于直通
+      musicFilter.connect(musicCtx.destination);
+    }
+    const src = musicCtx.createMediaElementSource(el);
+    src.connect(musicFilter);
+    el._waSrc = src;
+    musicWakeCtx();
+  } catch (e) {
+    // 挂不上就退回「只有音量」的版本，别把音乐弄哑
+    musicFilter = null;
+  }
+}
+
+/* 抽屉展开 → 压低并蒙住；两块都收起 → 放开。
+   由 setDrawer 每次变更后调一次 */
+function musicSetDuck(on) {
+  if (on === musicDucked) return;
+  musicDucked = on;
+  const el = musicEl;
+  // 正在淡出就别插手：那条链的收尾回调还等着跑（循环靠它接下一遍），
+  // 音量就交给它降到 0，下一遍起头自然会用 musicBaseVol() 带上当前倍数
+  if (el && !el.paused && !musicFadeTimer) musicRampTo(el, musicBaseVol(), MUSIC_DUCK_MS);
+  if (musicFilter && musicCtx) {
+    const t = musicCtx.currentTime, sec = MUSIC_DUCK_MS / 1000;
+    musicFilter.frequency.cancelScheduledValues(t);
+    musicFilter.frequency.setValueAtTime(musicFilter.frequency.value, t);
+    musicFilter.frequency.linearRampToValueAtTime(on ? MUSIC_MUFFLE_HZ : 20000, t + sec);
+  }
+}
+const musicSyncDuck = () => musicSetDuck(isDrawerOpen('left') || isDrawerOpen('right'));
+
+/* 静音起播之后：等第一次动手（敲键盘、点一下）把静音解开。
+   必须在这一类手势里解开 —— 没有手势就擅自取消静音，浏览器会直接把播放掐掉 */
+function musicArmUnmute() {
+  if (musicUnmuteArmed) return;
+  musicUnmuteArmed = true;
+  const events = ['pointerdown', 'keydown', 'touchstart'];
+  const once = () => {
+    musicUnmuteArmed = false;
+    events.forEach(t => document.removeEventListener(t, once));
+    const el = musicEl;
+    if (!el || musicPaused) return;
+    el.muted = false;
+    el.volume = musicBaseVol();
+    musicWakeCtx();
+  };
+  events.forEach(t => document.addEventListener(t, once, { once: true }));
+}
+
+/* 连静音起播都被拦下时的兜底：等第一次动手再走一遍起播 */
+function musicArmPlay() {
+  if (musicPlayArmed) return;
+  musicPlayArmed = true;
+  const events = ['pointerdown', 'keydown', 'touchstart'];
+  const once = () => {
+    musicPlayArmed = false;
+    events.forEach(t => document.removeEventListener(t, once));
+    const el = musicEl;
+    if (!el || musicPaused) return;
+    musicWakeCtx();
+    if (el.paused) musicAutoplay(el, () => { if (el === musicEl) musicSchedule(el); });
+    else if (el.muted) el.muted = false;
+  };
+  events.forEach(t => document.addEventListener(t, once, { once: true }));
+}
+
+/* 起播。浏览器政策上不允许「一次交互都没有就出声」，所以先试带声起播
+   （部署到 https、用户之前来过的话能成）；被拦下就退成**静音起播** ——
+   静音自动播放一定是放行的 —— 等第一次动手再解开静音。
+   听感上就是「一进门就已经在放了」，只是最开始那几秒还没声音 */
+function musicAutoplay(el, onStart) {
+  const ok = () => { if (el === musicEl) { musicWakeCtx(); musicRefreshBtn(); onStart(); } };
+  // 上一轮可能已经把它按成静音了：再试之前先恢复带声，
+  // 否则等用户动手后重试这一次会「带着静音起播成功」，声音就再也回不来了
+  if (el.muted) el.muted = false;
+  el.play().then(ok).catch(() => {
+    el.muted = true;
+    el.play().then(() => { ok(); musicArmUnmute(); }).catch(musicArmPlay);
+  });
+}
+
+/* 一遍：放 → 快完了先淡出 → 停 → 静默一段 → 再从头上。
+   剩余时长从当前位置算，所以中途暂停再继续能接上，不用重排整遍 */
+function musicSchedule(el) {
+  const dur = el.duration;
+  if (!isFinite(dur) || dur <= 0) return;
+  musicLater(Math.max(800, (dur - el.currentTime) * 1000 - MUSIC_FADE), () => {
+    if (el !== musicEl || musicPaused || el.paused) return;
+    musicFadeOut(el, MUSIC_FADE, () => {
+      if (el !== musicEl || musicPaused) return;
+      el.pause();
+      musicLater(MUSIC_GAP, () => {
+        if (el !== musicEl || musicPaused) return;
+        el.currentTime = 0;
+        el.volume = musicBaseVol();
+        el.play().then(() => { if (el === musicEl) musicSchedule(el); }).catch(musicArmPlay);
+      });
+    });
+  });
+}
+
+/* 起一首新曲子（换曲不走这里，走 musicSwitch）。暂停状态下只记下该放哪首 */
+function musicPlay(key) {
+  musicKey = key;
+  musicRefreshBtn();
+  musicClearTimers();
+  if (musicEl) { try { musicEl.pause(); } catch (e) {} musicEl = null; }
+  if (musicPaused) return;
+  const el = new Audio(MUSIC[key].src);
+  el.volume = musicBaseVol();
+  el.preload = 'auto';
+  musicEl = el;
+  musicAttachFilter(el);
+  musicAutoplay(el, () => { if (el === musicEl) musicSchedule(el); });
+}
+
+/* 换曲：上一首淡出 → 静默一段 → 新曲子起来 */
+function musicSwitch(key) {
+  if (musicPaused) { musicKey = key; musicRefreshBtn(); return; }   // 暂停中只记下
+  if (musicKey === key && musicEl) return;        // 已经在放这一首了，别打断
+  if (!musicEl) { musicPlay(key); return; }
+  musicClearTimers();
+  musicKey = key;
+  musicRefreshBtn();
+  const old = musicEl;
+  musicEl = null;                                 // 旧元素的后续回调一律作废
+  if (old._waSrc) { try { old._waSrc.disconnect(); } catch (e) {} old._waSrc = null; }
+  musicFadeOut(old, MUSIC_CUT, () => {
+    old.pause();
+    musicLater(MUSIC_GAP, () => { if (!musicPaused) musicPlay(key); });
+  });
+}
+
+/* 点按钮：放 ↔ 停，可以反复点。
+   暂停时把循环的定时器一并清掉；继续时从当前位置接着放，收尾重新排上 */
+function musicToggle() {
+  if (musicPaused) musicResume(); else musicPause();
+}
+
+function musicPause() {
+  if (musicPaused) return;
+  musicPaused = true;
+  musicClearTimers();
+  musicRefreshBtn();
+  const el = musicEl;
+  if (!el) return;
+  musicFadeOut(el, 700, () => { try { el.pause(); } catch (e) {} });
+}
+
+function musicResume() {
+  if (!musicPaused) return;
+  musicPaused = false;
+  musicRefreshBtn();
+  const el = musicEl;
+  // 停在尾巴上（正好在一次循环中间的静默里按的暂停）→ 这一遍从头来
+  if (!el || !isFinite(el.duration) || el.currentTime >= el.duration - 0.5) {
+    musicPlay(musicKey || (document.body.classList.contains('gate-up') ? 'gate' : mode));
+    return;
+  }
+  el.volume = musicBaseVol();
+  el.muted = false;
+  const start = () => { if (el === musicEl) musicSchedule(el); };
+  el.play().then(start).catch(() => musicAutoplay(el, start));
+}
+
+/* 圆钮落位：电脑端横向对齐图鉴左边界，手机端交给 CSS。
+   量的是 #grid 的左沿（不是第一张牌）—— 搜索过滤会把牌藏起来，grid 的边不会动 */
+function placeMusicButton() {
+  if (!musicBtn) return;
+  if (document.body.classList.contains('gate-up') || isMobile()) {
+    musicBtn.style.removeProperty('left');
+    return;
+  }
+  const grid = $('#grid');
+  if (grid) musicBtn.style.left = Math.round(grid.getBoundingClientRect().left) + 'px';
+}
+
+/* 两处调用点都走这里，由它按端分派 */
+function quakeFlip() {
+  if (isMobile()) quakeFlipGalleryMobile();
+  else            quakeFlipGallery();
+}
+
+/* ============================================================
    事件绑定与启动
    ============================================================ */
 function bindEvents() {
@@ -1465,6 +1876,13 @@ function bindEvents() {
     morphAll(mode === 'sakura' ? 'clow' : 'sakura');
   });
   searchEl.addEventListener('input', applyFilter);
+  searchEl.addEventListener('input', syncDock);     // 图鉴那边一改，底部那条跟着同步
+  const searchM = $('#search-m');
+  if (searchM) searchM.addEventListener('input', () => {
+    searchEl.value = searchM.value;                 // 底部打的字回灌给图鉴那个
+    applyFilter();
+    syncDock();
+  });
   // 两侧抽屉的把手
   $$('.drawer-tab').forEach(t => t.addEventListener('click', () => toggleDrawer(t.dataset.drawer)));
   $('#modal-flip').addEventListener('click', () => flipCard(modalEl.querySelector('.modal-card')));
@@ -1473,6 +1891,7 @@ function bindEvents() {
   $$('#modal [data-close]').forEach(el => el.addEventListener('click', closeModal));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
   $('#hope-flip').addEventListener('click', () => {
+    if (isMobile() && armedSlot) { placeArmed(payloadOf($('#hope-card'))); return; }
     if (!synthesized) return;                     // 未诞生：不可翻面
     flipCard($('#hope-card'));
   });
@@ -1483,6 +1902,15 @@ function bindEvents() {
   // 合成之后，希望牌本身也可以被拖去献诗
   attachDrag($('#hope-flip'), $('#hope-card'));
   $('#poem-reset').addEventListener('click', resetPoem);
+  // 手机端：点卡槽进入「等着接牌」状态（桌面端走拖拽，不进这个分支）
+  document.addEventListener('click', e => {
+    if (!isMobile()) return;
+    const slot = e.target.closest('.slot');
+    if (slot) { armSlot(slot); return; }
+    // 其余点击一律不取消。原来这里写的是「点到别处就取消」，但取牌的路上处处是坑：
+    // 拉开另一侧抽屉要点把手、找牌要先点搜索框，随便哪个都会把 armed 清掉。
+    // 取消的出口只留两个：再点一次同一个卡槽，或把该抽屉收起（见 setDrawer）
+  });
   // 屏蔽浏览器原生的图片拖拽，避免和自定义拖牌冲突
   document.addEventListener('dragstart', e => {
     if (e.target.closest('#grid')) e.preventDefault();
@@ -1498,11 +1926,15 @@ function init() {
     document.body.classList.add('no-scroll');
     buildGate(0);
   }
+  // 背景音乐：门里放门里那首，没门就直接按卡组放。圆钮的位置等 buildGrid 之后再量
+  if (musicBtn) {
+    document.body.classList.toggle('gate-up', !!$('#gate'));
+    musicBtn.addEventListener('click', musicToggle);
+    window.addEventListener('resize', placeMusicButton);
+    musicPlay($('#gate') ? 'gate' : mode);
+  }
   // 右侧抽屉的诗篇密码，与主密码门各自独立
   if ($('#poem-lock')) buildLock();
-  // 页头 / 合成台 / 诗篇三处魔法阵都改用图片素材（见 style.css），不再注入 SVG；
-  // 只剩弹窗里那圈转化动效仍用 SVG
-  $('.magic-overlay').innerHTML = MAGIC_RING;
   buildGrid();
   buildPoem();
   spawnPetals();
@@ -1511,6 +1943,8 @@ function init() {
   // 预加载真正的希望牌：合成瞬间切换 src 时不会因为解码而滞留旧图
   const preload = new Image();
   preload.src = HOPE_FACE.revealed.img;
+  // 图鉴排好版才量得准圆钮该贴在哪条线上
+  placeMusicButton();
 }
 
 init();

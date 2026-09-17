@@ -117,7 +117,7 @@ body[data-mode="sakura"]::after  { opacity: 1; }
 body, .ritual, .modal-body, .sec-title, .sec-sub, .tagline, .en-title,
 footer, .hope-caption p, .modal-desc, .modal-en,
 .modal-sym, .modal-sym-label, .modal-past, .modal-past-label,
-#count, .empty, .hero h1, .card-meta .cn, .card-meta .en, .slot, .toast {
+#count, #count-m, .empty, .hero h1, .card-meta .cn, .card-meta .en, .slot, .toast {
   transition: color .9s ease, background-color .9s ease, border-color .9s ease;
 }
 
@@ -172,7 +172,7 @@ body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.j
   position: absolute;
   left: 0; right: 0; top: 37.6%;
   margin: 0 auto;
-  width: min(480px, 84%);              /* 左右加宽 */
+  width: min(560px, 90%);              /* 加宽到最长那句问题也放得下一行，免得折行把面板撑高 */
   padding: 21px 34px 19px;             /* 上下收窄，左右留白加大 */
   border-radius: 22px; text-align: center;
   background: var(--gate-bg);
@@ -208,8 +208,9 @@ body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.j
   box-shadow: 0 0 0 3px rgba(158, 74, 78, .28);
 }
 
+/* min-height 要正好等于一行的行高（1.7em）：留少了，提示语一出现面板就长高、一消失又缩回去 */
 .gate-msg {
-  margin-top: 11px; min-height: 1.6em;
+  margin-top: 11px; min-height: 1.7em;
   font-size: .8rem; letter-spacing: .08em; line-height: 1.7;
   transition: color .3s;
 }
@@ -247,7 +248,6 @@ body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.j
 }
 body[data-mode="clow"] .hero-ring { --ring-src: var(--magic-circle-clow); }
 .hero > :not(.hero-ring) { position: relative; z-index: 1; }
-.magic-overlay svg { width: 100%; height: 100%; }
 
 @keyframes ringSpin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -810,8 +810,8 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .drawer-left .drop-zone .slot { width: 104px; }
 .drawer-left .drop-zone .slot .slot-ph { font-size: 1.7rem; }
 .drawer-left .ritual-arrow { font-size: 1.1rem; animation: none; }
-.drawer-left .hope-stage { width: 150px; height: 328px; }
-.drawer-left .hope-card .flip-zone { width: 96px; }
+/* 牌面宽度收在舞台这一层（--face-w），卡面与那颗阵都读它，不会再各写各的 */
+.drawer-left .hope-stage { width: 150px; height: 328px; --face-w: 96px; }
 .drawer-left .hope-caption h3 { font-size: .95rem; }
 .drawer-left .hope-caption p { font-size: .66rem; }
 .drawer-left .hope-tag { font-size: .62rem; }
@@ -824,11 +824,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .drawer-right .poem-slot .slot-ph { font-size: 1.1rem; }
 .drawer-right .sec-sub { font-size: .82rem; }
 
-/* 左侧：魔法阵的圆心对准希望牌，而不是舞台中心 */
-.drawer-left .stage-ring {
-  inset: auto; left: 0; right: 0; top: 0;
-  margin: -17px auto 0;    /* 卡心 108px − 半径 125px */
-}
+/* 左侧那颗阵的圆心由 .stage-ring 自己按 --face-w / --face-h 算，这里不用再管 */
 .drawer-left .motto { margin-top: 22px; text-align: center; }
 .drawer-left .motto .m-hope { font-family: var(--font-title); font-size: .92rem; }
 
@@ -996,11 +992,26 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 .poem-foot { display: flex; justify-content: center; margin-top: 22px; }
 
 /* ---------- 希望之牌舞台 ---------- */
-.hope-stage { position: relative; width: 210px; height: 420px; display: grid; place-items: center; }
+.hope-stage {
+  /* 卡面尺寸只留一个来源：宽写在这里，高按「卡面统一 4:9」（:root 的 --card-ratio
+     → 高的倍数 2.25）推算。合成那颗阵要正对牌面中心，得先知道牌面多大，
+     所以它直接读这两个变量 —— 以后改牌面宽度，阵会自己跟着走，不会再错位 */
+  --face-w: 126px;
+  --face-h: calc(var(--face-w) * 2.25);
+  --ring-w: 250px;
+  position: relative; width: 210px; height: 420px; display: grid; place-items: center;
+}
 
-/* 合成台那颗：固定希望红，形状同样取自素材 */
+/* 合成台那颗：固定希望红，形状同样取自素材。
+   圆心 = (舞台横向正中, 牌面正中)。定位只用 left/top + 负外边距，不借 transform：
+   ringBurst 那套 keyframes 把 transform 全占了，写进去会被动画直接抹掉。
+   也不能用 inset:0 + margin:auto —— 阵比舞台宽时左右两个 auto 外边距解不出相等值，
+   Chrome 会把左边距压成 0、整颗阵往右偏（实测桌面偏 50px、手机偏 74px） */
 .stage-ring {
-  position: absolute; inset: 0; margin: auto; width: 250px; height: 250px;
+  position: absolute;
+  left: 50%; top: calc(var(--face-h) / 2);
+  width: var(--ring-w); height: var(--ring-w);
+  margin: calc(var(--ring-w) / -2) 0 0 calc(var(--ring-w) / -2);
   background-color: var(--hope-red);
   -webkit-mask: var(--magic-circle-sakura) center / 94% no-repeat;
   mask: var(--magic-circle-sakura) center / 94% no-repeat;
@@ -1045,7 +1056,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
   0%, 100% { box-shadow: 0 0 0 1px var(--hope-red), 0 0 24px var(--hope-red), 0 10px 26px rgba(15, 10, 30, .28); }
   40% { box-shadow: 0 0 0 4px var(--hope-red), 0 0 52px var(--hope-red), 0 10px 26px rgba(15, 10, 30, .28); }
 }
-.hope-card .flip-zone { width: 126px; cursor: pointer; }
+.hope-card .flip-zone { width: var(--face-w); cursor: pointer; }
 .hope-card .flip-face.front img { transition: opacity .9s ease; }
 
 /* 未合成：压暗，且不可翻面 */
@@ -1172,10 +1183,27 @@ body.to-sakura .card.morphing .flip-zone::after {
 .modal-card.morphing .flip-face {
   box-shadow: 0 0 0 3px var(--accent), 0 0 30px var(--glow);
 }
+/* 单张转化时从牌面里炸出来的那圈阵，用和页头/诗篇同一份图片素材：
+   遮罩给形状（94% 与旧 SVG 外圈 226/240 对齐），底色给阵色。
+   morphModal() 只负责在 .modal-card 上写 data-morph="sakura|clow"，
+   「换哪份阵、配什么颜色」都收在下面两条规则里：
+     收服成小樱牌 → 樱阵（星·日·月），固定配小樱粉。--sakura-pink 本来就不随主题走，
+                   所以库洛牌状态下转化时也不会被库洛黄带跑
+     封印回库洛牌 → 库洛阵（五芒星），仍取当前卡组的强调色 */
 .magic-overlay {
   position: absolute; top: 50%; left: 50%; width: 320px; height: 320px;
   transform: translate(-50%, -50%) scale(.2);
-  color: var(--accent); opacity: 0; pointer-events: none; z-index: 5;
+  background-color: var(--overlay-ink, var(--accent));
+  -webkit-mask: var(--overlay-ring, var(--magic-circle-sakura)) center / 94% no-repeat;
+  mask: var(--overlay-ring, var(--magic-circle-sakura)) center / 94% no-repeat;
+  opacity: 0; pointer-events: none; z-index: 5;
+}
+.modal-card[data-morph="sakura"] .magic-overlay {
+  --overlay-ring: var(--magic-circle-sakura);
+  --overlay-ink: var(--sakura-pink);
+}
+.modal-card[data-morph="clow"] .magic-overlay {
+  --overlay-ring: var(--magic-circle-clow);
 }
 .modal-card.morphing .magic-overlay { animation: overlayBurst .8s ease-out; }
 @keyframes overlayBurst {
@@ -1328,3 +1356,385 @@ footer .credit { color: var(--ink-soft); opacity: .6; font-size: .7rem; letter-s
   .slot { width: 108px; }
   .drop-zone .plus { font-size: 1.2rem; }
 }
+
+/* ---------- 手机端的底部搜索条（基础态不显示，只在手机端且抽屉展开时出现） ---------- */
+.search-dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 690;
+  display: none; align-items: center; gap: 10px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--panel-strong); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+  transition: background-color .9s ease, border-color .9s ease;
+}
+
+/* ---------- 背景音乐圆钮 ----------
+   画成一张实心唱片：盘身 + 两道纹 + 中央标签 + 中心孔。
+   盘身/盘纹/标签三个颜色走 --disc / --disc-ink / --disc-label，
+   换主题、换明暗海报时只换这三个变量，形状不动。
+   位置分三种：
+     · 密码门还挂着（body.gate-up）→ 贴在海报上方居中那本书上
+     · 电脑端进门后             → 贴图鉴左边界（left 由 JS 量，见 placeMusicButton）
+     · 手机端进门后             → 左上角
+   旋转只转里面那个 svg，按钮本身不转 —— 不然 title 的气泡也跟着晃 */
+.music-btn {
+  --disc: #14121f;                 /* 盘身固定用黑胶色：跟面板走的话盘子没有「实物感」 */
+  --disc-ink: var(--mode-color);   /* 盘纹与描边取当前卡组色 */
+  --disc-label: var(--mode-color); /* 中央标签 */
+  position: fixed; z-index: 1160;
+  width: 40px; height: 40px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; cursor: pointer;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .38));
+  transition: filter .3s ease, opacity .4s ease;
+}
+.music-btn svg { width: 100%; height: 100%; display: block; }
+.music-btn .disc   { fill: var(--disc); stroke: var(--disc-ink); stroke-width: 1.4; }
+.music-btn .groove { fill: none; stroke: var(--disc-ink); }
+.music-btn .label  { fill: var(--disc-label); }
+.music-btn .hole   { fill: var(--disc); }
+/* 盘缘那段偏心弧 = 唯一的「在转」提示。线要够粗才看得出来，2.8 是量过的 */
+.music-btn .mark   { fill: none; stroke: var(--disc-label); stroke-width: 2.8; stroke-linecap: round; }
+.music-btn:hover { filter: drop-shadow(0 0 12px var(--glow)) brightness(1.12); }
+.music-btn.playing svg { animation: discSpin 3.6s linear infinite; }
+@keyframes discSpin { to { transform: rotate(360deg); } }
+/* 暂停中：整张盘压暗一点，一眼看得出没在转 */
+.music-btn.paused { opacity: .6; }
+
+/* 密码门还挂着的时候：贴在海报上那本书（书心量出来在海报的 50% / 11.04% 处）。
+   海报是 cover + 居中，所以它铺开后的高度 = max(视口高, 视口宽 / 1.9264)，
+   书心到海报上沿的距离就是这高度的 11.04%。这样窄屏（按高铺）和宽屏（按宽铺）
+   两种情形都能对上，不必分端写两套。
+   z-index 要抬到门（4500）之上，否则整块被门盖着，压根看不见。
+   盘色按海报明暗反过来配 —— 米白盘压在米白海报上等于隐形，这也是一开始
+   那张「不起眼」的原因 */
+body.gate-up .music-btn {
+  --poster-h: max(100vh, calc(100vw / 1.9264));
+  --disc: #17141a;                 /* 浅海报：黑胶盘 */
+  --disc-ink: #d8c9ab;
+  --disc-label: #b4524c;
+  z-index: 4600;
+  width: 54px; height: 54px;
+  left: 50%;
+  top: calc((100vh - var(--poster-h)) / 2 + var(--poster-h) * 0.1104);
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, .5));
+}
+body.gate-up[data-mode="clow"] .music-btn {
+  --disc: #e6dcc6;                 /* 深海报：米白盘，反过来 */
+  --disc-ink: #6a6152;
+  --disc-label: #9e4a4e;
+}
+/* 进门之后：电脑端贴在页面最上侧，横向对齐图鉴左边界（left 交给 JS）。
+   z-index 1160 —— 高过两侧抽屉（700 起、每次展开 +1）也高过搜索条，
+   所以左侧抽屉展开时圆钮浮在它上面，不会被挡住 */
+body:not(.gate-up) .music-btn { top: 14px; }
+
+/* ============================================================
+   手机端（≤700px）
+   放在最后，靠顺序盖掉上面几条窄屏规则。
+   桌面端的一切显示与交互都不动，这里只做覆盖。
+   与桌面最大的三处不同：
+     1. 两个抽屉收在屏幕顶部，两块把手合成一条导航栏
+     2. 取消拖牌，改成「先点卡槽、再点牌」（见 app.js 的 armSlot）
+     3. 图鉴每行 4 张，详情弹窗压进一屏
+   ============================================================ */
+@media (max-width: 700px) {
+
+  /* ---------- 密码门：海报填满整屏 ----------
+     竖屏手机上 cover 是「按高度铺」的（H/598 > W/1152 恒成立），
+     于是海报高度正好等于屏高，不留黑边、也就不会上下滑。
+     代价是标题左右各切掉一截，这是和「标题完整」不可兼得后选的一头。
+     高度按铺满算，海报坐标就是屏高的固定百分比：
+       主标题下沿 y=208 → 208/598 = 34.8%    图案上沿 y=355 → 59.4%
+     所以密码框的可用高度是屏高的 24.6%，比原来宽裕得多，字号也跟着放大 */
+  .gate { background-size: cover; background-position: center; }
+  /* 落在「主标题下沿 34.8%」与「图案上沿 59.4%」的中线，即 47.1%。
+     用 translateY(-50%) 居中，面板高度随位数变化也能自动对中 */
+  .gate-panel {
+    top: 49%;
+    transform: translateY(-50%);
+    width: min(440px, 97%);
+    padding: 20px 18px 18px;
+    border-radius: 20px;
+  }
+  .gate.done .gate-panel { transform: translateY(-50%) scale(.94); }
+  /* 抖动动画要占用 transform，这里得自己写一份带上居中位移的 */
+  .gate-panel.shake { animation: shakeM .5s; }
+  @keyframes shakeM {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    20%      { transform: translateY(-50%) translateX(-8px); }
+    40%      { transform: translateY(-50%) translateX(7px); }
+    60%      { transform: translateY(-50%) translateX(-5px); }
+    80%      { transform: translateY(-50%) translateX(3px); }
+  }
+  .gate-title { font-size: 1.32rem; letter-spacing: .2em; text-indent: .2em; }
+  /* 0.9rem 是算过的：最长那句（22 字 ＋ .06em 字距）在 97% 宽的框里正好一行，
+     折行的话面板会从 224 长到 247，位置也跟着飘 */
+  .gate-question { margin-top: 14px; font-size: .9rem; line-height: 1.6; }
+  .gate-inputs { gap: 12px; margin: 16px 0 2px; }
+  .gate-digit { width: 54px; height: 68px; border-radius: 13px; font-size: 1.6rem; }
+  .gate-msg { margin-top: 12px; min-height: 1.6em; font-size: .78rem; line-height: 1.6; }
+
+  /* ---------- 别让页面左右滑 ----------
+     手机浏览器会把横向滑动当「后退」手势，实测也确有元素探出视口，
+     两头一起堵：overflow-x 挡住溢出，touch-action 只放行纵向与缩放 */
+  html, body { overflow-x: hidden; overscroll-behavior: none; }
+  body { touch-action: pan-y pinch-zoom; }
+  /* 弹窗与抽屉内部滚到头时不要把滚动传给后面的页面 */
+  .modal, .modal-body, .drawer-body { overscroll-behavior: contain; }
+
+  /* 转化按钮：避开刘海屏的底部安全区；touch-action 免得点完残留 hover 位移 */
+  .transform-fab {
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    touch-action: manipulation;
+  }
+
+  /* ---------- 页面整体让出顶部导航栏的高度 ---------- */
+  .page { padding-top: 46px; }
+  .hero { padding: 26px 16px 22px; }
+  .hero h1 { font-size: clamp(1.9rem, 9vw, 2.6rem); }
+  .tagline { font-size: .72rem; line-height: 1.8; }
+
+  /* ---------- 图鉴：每行 4 张 ---------- */
+  .grid { grid-template-columns: repeat(4, 1fr); gap: 20px 7px; margin-top: 12px; }
+  .card { padding-top: 8px; }
+  .card-no { font-size: .48rem; padding: 0 3px; border-radius: 5px 0 5px 0; }
+  .card-meta { margin-top: 4px; gap: 0; }
+  .card-meta .cn { font-size: .62rem; }
+  .card-meta .en { font-size: .48rem; letter-spacing: 0; }
+  .detail-btn { width: 15px; height: 15px; font-size: .52rem; }
+  .flip-face.front, .flip-face.back { border-width: 2px; }
+  .toolbar { flex-direction: column; align-items: stretch; gap: 7px; margin-top: 12px; }
+  #search { width: 100%; font-size: .78rem; padding: 9px 12px; }
+  #count { text-align: right; font-size: .66rem; }
+  .sec-title { font-size: 1.05rem; }
+
+  /* 震翻时换成绕横轴（上下翻），只在合成诗篇那两下里生效（见 quakeFlipGalleryMobile） */
+  #grid.axis-x .flip-inner     { transform: rotateX(var(--flip)); }
+  #grid.axis-x .flip-face.back { transform: rotateX(180deg); }
+
+  /* 换轴的那一瞬不能带过渡。
+     .flip-inner 的 transform 是 rotateY(var(--flip))，加上 .axis-x 就变成
+     rotateX(var(--flip)) —— 函数名换了，起终点对不上，浏览器只能退回矩阵插值。
+     而矩阵插值碰上 180° 这种「对角」情形，走哪条路（正着转还是反着转、绕哪根轴）
+     是不确定的，第一遍震翻就会看到有的牌多转了一圈 —— 第二遍因为两边都是 rotateX，
+     能逐函数插值，所以是正常的。
+     加 .axis-swap 把过渡关掉，轴一下子切过去；牌背图案基本对称，这一下看不出来。
+     JS 那边会强制一次样式重算再把它摘掉，之后 --flip 的变化就是干净的 rotateX → rotateX */
+  #grid.axis-swap .flip-inner { transition: none; }
+
+  /* ---------- 详情弹窗：压进一屏 ---------- */
+  .modal-body {
+    flex-direction: column; align-items: center;
+    gap: 12px; padding: 18px 16px 16px;
+    max-width: 94vw; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-card { width: 104px; }
+  .modal-info { text-align: center; }
+  .modal-info h3 { font-size: 1rem; }
+  .modal-en { font-size: .66rem; margin-top: 2px; }
+  .modal-desc { font-size: .72rem; line-height: 1.6; margin-top: 8px; }
+  .modal-sym, .modal-past { margin-top: 9px; padding: 8px 10px; }
+  .modal-sym p, .modal-past p { font-size: .7rem; line-height: 1.6; }
+  .modal-actions { justify-content: center; gap: 9px; margin-top: 13px; }
+  .modal-actions .btn { font-size: .74rem; padding: 9px 13px; }
+
+  /* ---------- 抽屉里的密码：两列竖排要挤进 390 宽，数字框得跟着收 ----------
+     宽度账：两侧文字各 ~44 ＋ 各 8 间距 ＋ 6 格 × 30 ＋ 5 × 6 = 314，装得下 370 */
+  /* 密码层铺满抽屉，正好和诗篇用同一个高度 */
+  .drawer-lock {
+    --lk-digit-w: 30px; --lk-digit-h: 38px;
+    --lk-col-gap: 6px;  --lk-row-gap: 22px;
+    --lk-side-gap: 8px;
+    padding: 16px 10px;
+  }
+  .lock-digit { font-size: .95rem; border-radius: 8px; }
+  .lock-center { width: 100%; }
+  .lock-side .vline span { font-size: .82rem; }
+  .lock-open { left: 10px; right: 10px; }
+  .lock-open-l1 { font-size: .82rem; letter-spacing: .06em; }
+  .lock-open-l2 { font-size: 1.15rem; letter-spacing: .12em; }
+  .drawer-lock.lit .lock-open-l2 { letter-spacing: .06em; }
+  .lock-msg { font-size: .72rem; }
+
+  /* ---------- 抽屉：两块把手合成顶部一条导航栏 ---------- */
+  .drawer {
+    --m-nav: 46px;                 /* 导航栏高度，面板就吊在它下面 */
+    /* 诗篇抽屉的高度下限，解锁前后共用同一个值，切换时不跳。实测 390×844：
+         诗篇那块 326.5 ＋ 抽屉内边距 32          = 359
+         密码层（宣告钉在 87.72% 处，再矮就和锁撞上）= 约 374
+       取下限 400：400 时锁与宣告还隔着 21px、宣告离抽屉下沿 15px，
+       诗篇那边也留了 41px。这里是下限不是定高，内容真超了它会自己长 */
+    --m-sheet: min(400px, calc(100vh - var(--m-nav)));
+    width: 100vw !important;
+    transform: none !important;    /* 桌面那套左右滑入作废 */
+    pointer-events: none;          /* 抽屉本身不挡页面；只有把手和面板接事件 */
+  }
+  /* 两块把手合成一个框：各自按文字撑开、从中心往两边排，
+     合起来就是一条菜单栏，宽度由文字决定而不是铺满一行 */
+  .drawer-tab {
+    position: absolute; top: 0; height: var(--m-nav); width: auto;
+    padding: 0 16px; border: 0;
+    background: var(--panel-strong); backdrop-filter: blur(16px);
+    pointer-events: auto;
+  }
+  .drawer-left .drawer-tab  { left: 50%;  right: auto; transform: translateX(-100%);
+                              border-radius: 0 0 0 15px; }
+  .drawer-right .drawer-tab { right: 50%; left: auto;  transform: translateX(100%);
+                              border-radius: 0 0 15px 0;
+                              border-left: 1px solid var(--line); }
+  .drawer.open .drawer-tab { color: var(--mode-color); }
+  .drawer-tab-text {
+    writing-mode: horizontal-tb; text-orientation: mixed;
+    font-size: .88rem; letter-spacing: .16em; text-indent: .16em;
+  }
+  /* 音乐圆钮：进门后挪到左上角。顶部那条合并把手是从中线往两边撑开的
+     （实测 53~195px），圆钮占 12~46px，错得开。
+     密码门那会儿仍归 body.gate-up 那条管，位置不动 */
+  body:not(.gate-up) .music-btn { top: 8px; left: 12px; width: 36px; height: 36px; }
+  /* 桌面那两条 .drawer-left/.drawer-right .drawer-body 比自己这条特异性高，
+     得照抄一份同样的前缀才能把左右内缩改掉 */
+  .drawer-body,
+  .drawer-left .drawer-body,
+  .drawer-right .drawer-body {
+    /* 用固定高度而不是 bottom:auto —— 右侧抽屉里只有绝对定位的密码层和隐藏的诗篇，
+       高度交给内容算会塌成 0，整个面板就看不见了 */
+    position: absolute; top: var(--m-nav); left: 0; right: 0; bottom: auto;
+    height: var(--m-sheet, calc(100vh - var(--m-nav))); max-height: none;
+    border: 0; border-radius: 0 0 20px 20px;
+    padding: 14px 14px 18px;
+    transform: translateY(calc(-100% - var(--m-nav)));
+    transition: transform .34s cubic-bezier(.3, .7, .3, 1);
+    pointer-events: auto;
+  }
+  .drawer.open .drawer-body { transform: none; }
+  /* 收起的抽屉里没有东西该接事件 */
+  body:not(.picking) .drawer:not(.open) .slot { pointer-events: none; }
+
+  /* 「无与爱，诞生希望」挪到「搜寻…」上面并居中；用 order 调，不动 HTML（桌面端不能受影响） */
+  .drawer-left #special { display: flex; flex-direction: column; }
+  .drawer-left .motto { order: -1; margin: 0 0 8px; text-align: center; }
+
+  /* 「希望」与「The Hope」并作一行，中间用 • 隔开。
+     说明文字允许比卡面宽：卡面只有 62px，不放宽这行必然折行 */
+  .drawer-left .hope-caption { width: 172px; }
+  .drawer-left .hope-caption h3 { font-size: .72rem; letter-spacing: .16em; text-indent: .16em; white-space: nowrap; }
+  .drawer-left .hope-caption h3 .hope-en { display: inline; margin-top: 0; font-size: .6rem; letter-spacing: .1em; }
+  .drawer-left .hope-caption h3 .hope-en::before { content: ' • '; }
+  .drawer-left .hope-tag { font-size: .58rem; white-space: nowrap; }
+
+  /* 左侧：合成台。三个东西（两卡槽 ＋ 希望牌）压成一横排，面板高度就只由这一排决定 */
+  .drawer-left .drawer-body { height: auto; padding-bottom: 54px; }   /* 多留一点，免得底部冒出滚动条 */
+  .drawer-left .ritual {
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: 10px; margin-top: 10px;
+  }
+  .drawer-left .drop-zone { gap: 10px; }
+  .drawer-left .drop-zone .slot { width: 66px; }
+  .drawer-left .ritual-arrow { transform: none; font-size: .9rem; }
+  /* 牌面收到 62px，那颗阵也跟着收：桌面是 250 : 216 ≈ 1.16 倍卡高，
+     手机按同一比例给 160，正好落在这一排里，不会顶到上面的题词、也不出屏幕 */
+  .drawer-left .hope-stage { width: 102px; height: 206px; --face-w: 62px; --ring-w: 160px; }
+  .drawer-left .hope-caption h3 { font-size: .74rem; }
+  .drawer-left .hope-caption p { font-size: .56rem; }
+  .drawer-left .motto { margin-top: 8px; font-size: .66rem; }
+
+  /* 右侧：诗篇。高度用 min-height 定一个下限（解锁前后因此一样高，切换时不跳），
+     但不写死 —— 万一真实机型上字体换行更多把它顶高了，让它自己长就是，不会冒出滚动条。
+     说明文字与「再读一次」都改成阵两侧的竖排之后（见下），这块只剩下一颗阵，
+     要的高度从 445 掉到 359，下限跟着收到 400 */
+  .drawer-right .drawer-body {
+    height: auto; min-height: var(--m-sheet);
+    max-height: calc(100vh - var(--m-nav));
+    justify-content: center;
+  }
+  .drawer-right .poem-circle { width: min(88%, 40vh); margin-top: 8px; }
+
+  /* ---------- 诗篇两侧的竖排 ----------
+     「或许…」搬到阵的右侧、「再读一次」搬到左侧，两块都脱离文档流，
+     正好落进阵左右各 ~36px 的余量里 —— 阵的尺寸和位置一点没动，
+     顺带把诗篇那块的高度从「说明 ＋ 阵 ＋ 按钮」压成「只有阵」。
+     这一层盒子的上下沿用绝对定位钉住阵的上下沿：top 与 .poem-circle 的
+     margin-top 取同一个数（8px），bottom:0 落在阵的下沿，
+     阵高 = min(88% 宽, 40vh) 怎么变，这层盒子都跟着 */
+  .drawer-right #poem { position: relative; }
+  .drawer-right .sec-sub,
+  .drawer-right .poem-foot {
+    position: absolute; top: 8px; bottom: 0;
+    margin: 0; max-width: 100%;
+  }
+  /* 竖排：inline 轴变成纵向，于是 text-align:center 是「上下居中」而不是「左右居中」
+     —— 阵高多少，字就自动居中多少 */
+  .drawer-right .sec-sub {
+    right: 0; writing-mode: vertical-rl;
+    white-space: nowrap;              /* 宁可略微溢出，也不折成歪歪扭扭的第二列 */
+    /* 字号跟阵一起缩：阵高 = min(88% 宽, 40vh)，25 个字排下来要正好放得进 */
+    font-size: clamp(8px, 1.4vh, 11.5px); line-height: 1.3; letter-spacing: .02em;
+  }
+  .drawer-right .poem-foot { left: 0; display: flex; align-items: center; }
+  /* 按钮也得竖过来，并且收窄：物理宽度 = 行高 ＋ 左右内边距，
+     要塞进 36px 的余量里不压到阵线，内边距只留 3 */
+  .drawer-right .replay-btn {
+    writing-mode: vertical-rl; padding: 20px 3px;
+    font-size: .72rem; letter-spacing: .1em; border-radius: 14px;
+  }
+  /* 阵心改成用 translate 居中：原来那套 margin 百分比定位实测偏上 25px。
+     手机端没有拖拽，不会和 .slot.drag-over 抢 transform。
+     代价是抖动与弹跳动画也在写 transform，直接复用 shake/slotPop 会把它拽回未偏移的
+     位置去抖 —— 这两个得各写一份带上位移的 */
+  .drawer-right .poem-center { left: 50%; right: auto; top: 50%; margin: 0; transform: translate(-50%, -50%); }
+  .drawer-right .poem-center.reject   { animation: shakeCenter .5s; }
+  .drawer-right .poem-center.accepted { animation: popCenter .55s cubic-bezier(.2, 1.5, .4, 1); }
+  @keyframes shakeCenter {
+    0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+    20%      { transform: translate(-50%, -50%) translateX(-8px); }
+    40%      { transform: translate(-50%, -50%) translateX(7px); }
+    60%      { transform: translate(-50%, -50%) translateX(-5px); }
+    80%      { transform: translate(-50%, -50%) translateX(3px); }
+  }
+  @keyframes popCenter {
+    0%   { transform: translate(-50%, -50%) scale(1); }
+    55%  { transform: translate(-50%, -50%) scale(1.14); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* 底部搜索条：抽屉展开时现身，转化按钮相应让位 */
+  .search-dock.show { display: flex; }
+  .search-dock input {
+    flex: 1; min-width: 0; font-size: .8rem; padding: 9px 12px;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--gate-field); color: var(--ink); outline: none;
+  }
+  /* 与图鉴顶上那条 #count 同一套配色：平时 ink-soft，命中密语（今夜我爱你）转成卡组色。
+     syncDock 会把 #count 的 class 一起搬过来，所以 .revealed 在这里也生效 */
+  .search-dock span { font-size: .66rem; white-space: nowrap; color: var(--ink-soft); letter-spacing: .05em; }
+  .search-dock span.revealed { color: var(--name); }
+  body.dock-open .transform-fab { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+  /* 抽屉展开时，底部那条搜索框才是「搜索框」的位置 —— 提示条从屏幕中部挪到它正上方，
+     贴着自己要指的地方。它和转化按钮本来会叠在一起（实测提示 707~748、按钮 720~766），
+     所以提示在的时候把按钮再往上抬一格，两者错开。
+     .toast-on 由 toast() / toastHide() 维护；抽屉没展开时（页面中部本来就没别的东西）
+     位置不动 */
+  body.dock-open .toast { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  body.dock-open.toast-on .transform-fab { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  /* 卡槽必须回到按百分比缩放：定死 74px 的话，在 287px 的阵上五张牌会互相压住。
+     12% 是桌面就定好的比例，四个方向槽到阵心的距离正好等于半个阵宽，互不相碰 */
+  .slot.poem-slot { width: 12%; }
+  .drawer-right .poem-title { font-size: 1.02rem; letter-spacing: .12em; }
+  .drawer-right .poem-line { font-size: .84rem; line-height: 1.9; }
+  .drawer-right .poem-last { font-size: 1.7rem; }
+  /* 说明文字的字号见上面「诗篇两侧的竖排」—— 那边要跟着阵高缩，不能再压一个定值 */
+
+  /* 卡槽被点选后等着接牌的样子 */
+  .slot.arming {
+    border-color: var(--mode-color);
+    box-shadow: 0 0 0 3px var(--glow), inset 0 0 22px var(--glow);
+    animation: slotArm 1.1s ease-in-out infinite;
+  }
+  @keyframes slotArm {
+    0%, 100% { box-shadow: 0 0 0 3px var(--glow), inset 0 0 22px var(--glow); }
+    50%      { box-shadow: 0 0 0 7px transparent, inset 0 0 30px var(--glow); }
+  }
+
+}
+
