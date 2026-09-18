@@ -1498,7 +1498,8 @@ body:not(.gate-up) .music-btn { top: 14px; }
   /* ---------- 图鉴：每行 4 张 ---------- */
   .grid { grid-template-columns: repeat(4, 1fr); gap: 20px 7px; margin-top: 12px; }
   .card { padding-top: 8px; }
-  .card-no { font-size: .48rem; padding: 0 3px; border-radius: 5px 0 5px 0; }
+  /* 卡号徽章跟着桌面端走（22px 圆、同样的字号）—— 之前这里改成了小圆角方框，
+     和桌面端不是一套 */
   .card-meta { margin-top: 4px; gap: 0; }
   .card-meta .cn { font-size: .62rem; }
   .card-meta .en { font-size: .48rem; letter-spacing: 0; }
@@ -1560,12 +1561,21 @@ body:not(.gate-up) .music-btn { top: 14px; }
   /* ---------- 抽屉：两块把手合成顶部一条导航栏 ---------- */
   .drawer {
     --m-nav: 46px;                 /* 导航栏高度，面板就吊在它下面 */
-    /* 诗篇抽屉的高度下限，解锁前后共用同一个值，切换时不跳。实测 390×844：
-         诗篇那块 326.5 ＋ 抽屉内边距 32          = 359
-         密码层（宣告钉在 87.72% 处，再矮就和锁撞上）= 约 374
-       取下限 400：400 时锁与宣告还隔着 21px、宣告离抽屉下沿 15px，
-       诗篇那边也留了 41px。这里是下限不是定高，内容真超了它会自己长 */
-    --m-sheet: min(400px, calc(100vh - var(--m-nav)));
+    /* 诗篇抽屉的高度下限，解锁前后共用同一个值，切换时不跳。
+       取「解锁前后两种状态里更费空间的那个」：
+
+         解锁后 —— #poem 就是「阵 + 8px 上边距」，再加抽屉内边距 32，
+                   合计 = 阵高 + 40；阵高本身是 min(88% 内容宽, 40vh)，
+                   所以这里照抄同一套算法，各机型自动贴合，不用逐个机型试
+         锁着时 —— 宣告钉在 87.72% 处、实测高 67.2，上下各要 h/2 才不撞锁，
+                   反推下限 = 67.2 / 0.2456 ≈ 274
+
+       实测 390×844：解锁态 358.5、锁定态 273.7，取大者；之前定的 400 白留了 41.5。
+       阵随视口缩，所以这两个数也跟着缩，没有一个放之四海皆准的定值。
+       末尾那项是横屏兜底：按宽算出来的可能比屏幕还高。
+       这里是下限不是定高，内容真超了它会自己长 */
+    --m-sheet: min(max(var(--m-sheet-floor, 280px), calc(min(0.88 * (100vw - 28px), 40vh) + 46px)),
+                   calc(100vh - var(--m-nav)));
     width: 100vw !important;
     transform: none !important;    /* 桌面那套左右滑入作废 */
     pointer-events: none;          /* 抽屉本身不挡页面；只有把手和面板接事件 */
@@ -1710,19 +1720,33 @@ body:not(.gate-up) .music-btn { top: 14px; }
   .search-dock span { font-size: .66rem; white-space: nowrap; color: var(--ink-soft); letter-spacing: .05em; }
   .search-dock span.revealed { color: var(--name); }
   body.dock-open .transform-fab { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
-  /* 抽屉展开时，底部那条搜索框才是「搜索框」的位置 —— 提示条从屏幕中部挪到它正上方，
-     贴着自己要指的地方。它和转化按钮本来会叠在一起（实测提示 707~748、按钮 720~766），
-     所以提示在的时候把按钮再往上抬一格，两者错开。
-     .toast-on 由 toast() / toastHide() 维护；抽屉没展开时（页面中部本来就没别的东西）
-     位置不动 */
-  body.dock-open .toast { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
-  body.dock-open.toast-on .transform-fab { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  /* 提示条挂在顶部那条合并把手下面 —— 抽屉一拉开，内容就从这里开始，
+     提示贴在自己的上沿，视线不用来回跑。原来放在底部搜索框上方，
+     但那样会和转化按钮叠在一起（实测提示 707~748、按钮 720~766），
+     还得额外把按钮抬起来让位 */
+  body.dock-open .toast {
+    top: 54px; bottom: auto;
+    transform: translate(-50%, -14px);
+  }
+  body.dock-open .toast.show { transform: translate(-50%, 0); }
+
+  /* 点搜索框弹出输入法时，视口跟着缩（见 head 里的 interactive-widget=resizes-content），
+     贴着底部的转化按钮会被顶到半空。打字时本来也用不着它，聚焦期间先收起来 ——
+     收起来是「不动」，而不是让它飞到一个奇怪的高度。
+     body.kb-up 由 bindKeyboardGuard() 维护；这条只在手机端生效，桌面端打字不受影响 */
+  body.kb-up .transform-fab { opacity: 0; pointer-events: none; }
   /* 卡槽必须回到按百分比缩放：定死 74px 的话，在 287px 的阵上五张牌会互相压住。
      12% 是桌面就定好的比例，四个方向槽到阵心的距离正好等于半个阵宽，互不相碰 */
   .slot.poem-slot { width: 12%; }
   .drawer-right .poem-title { font-size: 1.02rem; letter-spacing: .12em; }
   .drawer-right .poem-line { font-size: .84rem; line-height: 1.9; }
-  .drawer-right .poem-last { font-size: 1.7rem; }
+  /* 末句五个字必须挤在一行。原来 1.7rem + .24em 字距算下来正好顶满 210px（实测
+     scrollWidth 210 / 容器 210.2），换个字体就折行 —— 手机字体各不相同，得留余量。
+     字距和字号一起收，另外加 nowrap 兜底：真到了极窄的屏上宁可略微溢出一丁点，
+     也不要折成两行 */
+  .drawer-right .poem-last {
+    font-size: 1.55rem; letter-spacing: .12em; text-indent: .12em; white-space: nowrap;
+  }
   /* 说明文字的字号见上面「诗篇两侧的竖排」—— 那边要跟着阵高缩，不能再压一个定值 */
 
   /* 卡槽被点选后等着接牌的样子 */

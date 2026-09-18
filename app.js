@@ -254,7 +254,7 @@ function setDrawer(side, open) {
   syncDock();
   musicSyncDuck();   // 抽屉一开一合，BGM 跟着蒙上 / 放开
   // 诗篇抽屉一拉开就重放竖排文字的浮现，并把光标送进密码框（已解锁则都不做）
-  if (side === 'right' && open) { riseRiddle(); focusLock(); }
+  if (side === 'right' && open) { fitSheetFloor(); riseRiddle(); focusLock(); }
 }
 const isDrawerOpen = side => !!drawers[side] && drawers[side].classList.contains('open');
 const autoOpened = { left: false, right: false };   // 记录「是拖牌顺手拉开的」，便于离开时收回
@@ -1069,7 +1069,6 @@ let toastSticky = false;   // 当前这条提示是不是常驻的
 function toast(msg, sticky) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
-  document.body.classList.add('toast-on');   // 手机端：转化按钮给提示条让位（见 style.css）
   clearTimeout(toastTimer);
   toastSticky = !!sticky;
   if (!sticky) toastTimer = setTimeout(toastHide, 1800);
@@ -1078,7 +1077,6 @@ function toastHide() {
   clearTimeout(toastTimer);
   toastSticky = false;
   toastEl.classList.remove('show');
-  document.body.classList.remove('toast-on');
 }
 
 /* ============================================================
@@ -1792,6 +1790,7 @@ function musicPlay(key) {
   if (musicEl) { try { musicEl.pause(); } catch (e) {} musicEl = null; }
   if (musicPaused) return;
   const el = new Audio(MUSIC[key].src);
+  el._key = key;                                  // 记下是哪一首，继续播放时核对
   el.volume = musicBaseVol();
   el.preload = 'auto';
   musicEl = el;
@@ -1800,8 +1799,26 @@ function musicPlay(key) {
 }
 
 /* 换曲：上一首淡出 → 静默一段 → 新曲子起来 */
+/* 丢掉手上这个 <audio>（暂停、断开图节点）。换曲、暂停中换曲都走它 */
+function musicDrop() {
+  const el = musicEl;
+  musicEl = null;
+  if (!el) return;
+  try { el.pause(); } catch (e) {}
+  if (el._waSrc) { try { el._waSrc.disconnect(); } catch (e) {} el._waSrc = null; }
+}
+
 function musicSwitch(key) {
-  if (musicPaused) { musicKey = key; musicRefreshBtn(); return; }   // 暂停中只记下
+  // 暂停中：只记下该换成哪首，同时把手上这个 <audio> 丢掉。
+  // 不丢的话，musicResume 会看见旧的元素还活着、位置也停在半路，
+  // 于是直接把暂停前那首接着放 —— 就成了「切了状态还在放旧曲子」
+  if (musicPaused) {
+    musicClearTimers();
+    musicDrop();
+    musicKey = key;
+    musicRefreshBtn();
+    return;
+  }
   if (musicKey === key && musicEl) return;        // 已经在放这一首了，别打断
   if (!musicEl) { musicPlay(key); return; }
   musicClearTimers();
@@ -1837,8 +1854,10 @@ function musicResume() {
   musicPaused = false;
   musicRefreshBtn();
   const el = musicEl;
-  // 停在尾巴上（正好在一次循环中间的静默里按的暂停）→ 这一遍从头来
-  if (!el || !isFinite(el.duration) || el.currentTime >= el.duration - 0.5) {
+  // 手上这首不是当前该放的那首（暂停期间切过状态）→ 重起；
+  // 或者停在尾巴上（正好在一次循环中间的静默里按的暂停）→ 这一遍也从头来
+  if (!el || el._key !== musicKey ||
+      !isFinite(el.duration) || el.currentTime >= el.duration - 0.5) {
     musicPlay(musicKey || (document.body.classList.contains('gate-up') ? 'gate' : mode));
     return;
   }
@@ -1846,6 +1865,33 @@ function musicResume() {
   el.muted = false;
   const start = () => { if (el === musicEl) musicSchedule(el); };
   el.play().then(start).catch(() => musicAutoplay(el, start));
+}
+
+/* 诗篇抽屉高度下限的兜底。
+   style.css 里那个 274 是按实测推的（宣告高 67.2 / 0.2456），字体一换、宣告多折一行
+   就不够了 —— 锁层是绝对定位的，撑不动抽屉，只会和锁图叠在一起。
+   所以量一次宣告的实际高度，需要更高就把下限顶上去。只调抽屉高度，不动任何字号间距 */
+function fitSheetFloor() {
+  const lock = $('#poem-lock');
+  if (!lock) return;
+  const open = lock.querySelector('.lock-open');
+  if (!open) return;
+  const h = open.getBoundingClientRect().height;
+  if (!h) return;                                  // 还没排版出来，下次再说
+  const need = Math.ceil(h / 0.2456) + 8;          // 上下各留 h/2 再加一点余量
+  document.body.style.setProperty('--m-sheet-floor', Math.max(280, need) + 'px');
+}
+
+/* 点底部那条搜索框会弹出输入法，视口随之缩短（见 head 的 interactive-widget=resizes-content），
+   贴着底部的转化按钮会被顶到半空去。聚焦期间给它加个记号，CSS 那边把它收起来 ——
+   打字时本来也用不着它。
+   只管底部这一条：图鉴顶上那个搜索框不参与，聚焦它时按钮照常待着。
+   桌面端同样会加这个类，但那条 CSS 只在手机端生效 */
+function bindKeyboardGuard() {
+  const inp = $('#search-m');
+  if (!inp) return;
+  inp.addEventListener('focus', () => document.body.classList.add('kb-up'));
+  inp.addEventListener('blur',  () => document.body.classList.remove('kb-up'));
 }
 
 /* 圆钮落位：电脑端横向对齐图鉴左边界，手机端交给 CSS。
@@ -1921,6 +1967,7 @@ function init() {
   document.body.dataset.mode = mode;
   // 先绑事件再渲染：后面任何渲染环节出问题，也不会连累按钮/搜索全部失灵
   bindEvents();
+  bindKeyboardGuard();
   // 密码门：先上锁再干别的，未解锁时也禁止页面滚动
   if ($('#gate')) {
     document.body.classList.add('no-scroll');
@@ -1931,6 +1978,7 @@ function init() {
     document.body.classList.toggle('gate-up', !!$('#gate'));
     musicBtn.addEventListener('click', musicToggle);
     window.addEventListener('resize', placeMusicButton);
+    window.addEventListener('resize', fitSheetFloor);
     musicPlay($('#gate') ? 'gate' : mode);
   }
   // 右侧抽屉的诗篇密码，与主密码门各自独立
@@ -1945,6 +1993,7 @@ function init() {
   preload.src = HOPE_FACE.revealed.img;
   // 图鉴排好版才量得准圆钮该贴在哪条线上
   placeMusicButton();
+  fitSheetFloor();
 }
 
 init();
