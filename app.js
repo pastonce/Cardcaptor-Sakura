@@ -936,6 +936,7 @@ function finishPoem() {
     $('#tab-right-text').textContent = POEM_TAB.revealed;   // 把手也揭晓
     const last = $('#poem-last');
     last.classList.add('show');
+    enterHeart();   // 和这五个字同一刻起跑：唱片缩掉、爱心弹出，新曲子正好在它们落定时响起
     const lr = last.getBoundingClientRect();
     const lx = lr.left + lr.width / 2;
     const ly = lr.top + lr.height / 2;
@@ -1603,6 +1604,9 @@ const MUSIC = {
   gate:   { src: ASSETS + 'music/Cras numquam scire.mp3', name: 'Cras numquam scire' },
   clow:   { src: ASSETS + 'music/夜の歌.mp3',             name: '夜の歌' },
   sakura: { src: ASSETS + 'music/さくらのテーマ2.mp3',     name: 'さくらのテーマ2' },
+  // 诗篇完全揭晓之后固定的那一首，不跟卡组走。
+  // skip：这首开头有两秒死静音，起播时直接跳过，不然「歌还没响」的空档白占时间
+  heart:  { src: ASSETS + 'music/心に静寂と平和を.mp3',      name: '心に静寂と平和を', skip: 2 },
 };
 const MUSIC_VOL  = 0.25;    // 背景音乐，压着点，别盖过页面本身
 const MUSIC_FADE = 2400;    // 一遍收尾的淡出时长
@@ -1626,6 +1630,7 @@ let musicFadeTimer = null;
 let musicUnmuteArmed = false;   // 静音起播中，等第一次动手把静音解开
 let musicPlayArmed  = false;    // 连静音起播都没成的兜底：等第一次动手再放
 let musicDucked = false;        // 抽屉开着：当前是否处于「蒙住」状态
+let musicHeart  = false;        // 诗篇完全揭晓后置位：曲子锁定成那一首，也不再蒙住
 let musicCtx = null;            // Web Audio 上下文（挂低通用）
 let musicFilter = null;         // 那一级低通
 
@@ -1711,7 +1716,8 @@ function musicSetDuck(on) {
     musicFilter.frequency.linearRampToValueAtTime(on ? MUSIC_MUFFLE_HZ : 20000, t + sec);
   }
 }
-const musicSyncDuck = () => musicSetDuck(isDrawerOpen('left') || isDrawerOpen('right'));
+/* 红心态下不再蒙住：抽屉开合都不影响 */
+const musicSyncDuck = () => musicSetDuck(!musicHeart && (isDrawerOpen('left') || isDrawerOpen('right')));
 
 /* 静音起播之后：等第一次动手（敲键盘、点一下）把静音解开。
    必须在这一类手势里解开 —— 没有手势就擅自取消静音，浏览器会直接把播放掐掉 */
@@ -1775,7 +1781,7 @@ function musicSchedule(el) {
       el.pause();
       musicLater(MUSIC_GAP, () => {
         if (el !== musicEl || musicPaused) return;
-        el.currentTime = 0;
+        el.currentTime = musicSkipOf(el);
         el.volume = musicBaseVol();
         el.play().then(() => { if (el === musicEl) musicSchedule(el); }).catch(musicArmPlay);
       });
@@ -1796,8 +1802,17 @@ function musicPlay(key) {
   el.preload = 'auto';
   musicEl = el;
   musicAttachFilter(el);
+  // 元数据到了才跳得动（currentTime 得先知道时长），跳完再排这一遍的收尾
+  el.addEventListener('loadedmetadata', () => {
+    if (el !== musicEl) return;
+    el.currentTime = musicSkipOf(el);
+  });
   musicAutoplay(el, () => { if (el === musicEl) musicSchedule(el); });
 }
+
+/* 这一首该从第几秒起播：绝大多数是 0，个别曲子开头挂着一段死静音（见 MUSIC.heart.skip）。
+   循环重起时同样跳过，不然每转一圈都要白等一次 */
+const musicSkipOf = el => (MUSIC[el._key] && MUSIC[el._key].skip) || 0;
 
 /* 换曲：上一首淡出 → 静默一段 → 新曲子起来 */
 /* 丢掉手上这个 <audio>（暂停、断开图节点）。换曲、暂停中换曲都走它 */
@@ -1809,7 +1824,11 @@ function musicDrop() {
   if (el._waSrc) { try { el._waSrc.disconnect(); } catch (e) {} el._waSrc = null; }
 }
 
-function musicSwitch(key) {
+/* opts 可以覆写淡出/静默这两段的时长 —— 揭晓那一下要把「新曲子响起来」的时刻
+   对准「今夜我爱你」五个字落定的瞬间，见 enterHeart */
+function musicSwitch(key, opts) {
+  // 红心态：曲子锁死在那一首上，切卡组之类的一律不放行
+  if (musicHeart && key !== 'heart') return;
   // 暂停中：只记下该换成哪首，同时把手上这个 <audio> 丢掉。
   // 不丢的话，musicResume 会看见旧的元素还活着、位置也停在半路，
   // 于是直接把暂停前那首接着放 —— 就成了「切了状态还在放旧曲子」
@@ -1826,11 +1845,13 @@ function musicSwitch(key) {
   musicKey = key;
   musicRefreshBtn();
   const old = musicEl;
+  const cut = (opts && opts.cut) || MUSIC_CUT;
+  const gap = (opts && opts.gap) || MUSIC_GAP;
   musicEl = null;                                 // 旧元素的后续回调一律作废
   if (old._waSrc) { try { old._waSrc.disconnect(); } catch (e) {} old._waSrc = null; }
-  musicFadeOut(old, MUSIC_CUT, () => {
+  musicFadeOut(old, cut, () => {
     old.pause();
-    musicLater(MUSIC_GAP, () => { if (!musicPaused) musicPlay(key); });
+    musicLater(gap, () => { if (!musicPaused) musicPlay(key); });
   });
 }
 
@@ -1907,6 +1928,41 @@ function bindKeyboardGuard() {
     document.body.classList.remove('kb-up');
     pinViewportHeight();          // 键盘收了，重新量一次视口高
   });
+}
+
+/* 唱片 → 爱心 的那一下：唱片先缩掉，260ms 后换类、爱心弹出来，
+   同时在圆钮上炸一把小心心（复用揭晓那套粒子） */
+function heartTransform() {
+  const disc = musicBtn.querySelector('.face-disc');
+  const r = musicBtn.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  if (disc) disc.animate(
+    [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(.12)', opacity: 0 }],
+    { duration: 260, easing: 'ease-in', fill: 'forwards' });
+  setTimeout(() => {
+    musicBtn.classList.add('heart');
+    burst(cx, cy, { count: 18, hearts: true });
+    musicBtn.animate(
+      [{ boxShadow: '0 0 0 0 rgba(198, 42, 58, 0)' },
+       { boxShadow: '0 0 0 9px rgba(198, 42, 58, .42)', offset: .35 },
+       { boxShadow: '0 0 0 24px rgba(198, 42, 58, 0)' }],
+      { duration: 900, easing: 'ease-out' });
+  }, 260);
+}
+
+/* 诗篇完全揭晓之后：唱片圆钮换成红心，曲子换成固定那一首，
+   从此不跟卡组走、也不再被抽屉蒙住。
+   只在内存里置位 —— 刷新或重进页面都要重新揭晓一次才会再有（和诗篇本身一样不持久化） */
+function enterHeart() {
+  if (musicHeart || !musicBtn) return;
+  musicHeart = true;
+  heartTransform();
+  musicSyncDuck();          // 万一此刻正被抽屉蒙着，立刻放开
+  /* 换曲节奏按揭晓动画排：「今夜我爱你」五个字是 0/.14/.28/.42/.56s 依次现身、
+     每个 0.95s 长，最后一个在 0.56+0.95 ≈ 1.51s 落定。
+     所以淡出取 0.9s（正好盖住它们陆续现身的过程）、静默 0.6s，加起来 1.5s ——
+     新曲子就在五个字刚站住的那一刻响起来 */
+  musicSwitch('heart', { cut: 900, gap: 600 });
 }
 
 /* 圆钮落位：电脑端横向对齐图鉴左边界，手机端交给 CSS。

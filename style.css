@@ -1395,8 +1395,36 @@ footer .credit { color: var(--ink-soft); opacity: .6; font-size: .7rem; letter-s
 /* 盘缘那段偏心弧 = 唯一的「在转」提示。线要够粗才看得出来，2.8 是量过的 */
 .music-btn .mark   { fill: none; stroke: var(--disc-label); stroke-width: 2.8; stroke-linecap: round; }
 .music-btn:hover { filter: drop-shadow(0 0 12px var(--glow)) brightness(1.12); }
-.music-btn.playing svg { animation: discSpin 3.6s linear infinite; }
+.music-btn.playing .face-disc { animation: discSpin 3.6s linear infinite; }
 @keyframes discSpin { to { transform: rotate(360deg); } }
+
+/* 诗篇完全揭晓之后：唱片换成一颗红心（见 app.js 的 enterHeart）。
+   播放时改成心跳似的起伏 —— 转一颗心看着别扭，但「在不在放」还是要一眼看得出来。
+   这一态下曲子固定、也不再有抽屉的蒙住效果 */
+.music-btn .face-heart { display: none; }
+.music-btn.heart .face-disc  { display: none; }
+/* 爱心从无到有弹出来（换类的那一下放一次），之后接上心跳。
+   两个动画写在一起：心跳延后 0.9s，接缝处两边都是 scale(1)，不会跳 */
+.music-btn.heart .face-heart {
+  display: block; fill: var(--hope-red);
+  animation: heartIn .9s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.music-btn.heart.playing .face-heart {
+  animation: heartIn .9s cubic-bezier(.2, 1.5, .4, 1) both,
+             heartBeat 1.7s ease-in-out .9s infinite;
+}
+@keyframes heartIn {
+  0%   { transform: scale(0) rotate(-150deg); opacity: 0; }
+  62%  { transform: scale(1.32) rotate(9deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+}
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  16%      { transform: scale(1.15); }
+  32%      { transform: scale(1); }
+  48%      { transform: scale(1.09); }
+  64%      { transform: scale(1); }
+}
 /* 暂停中：整张盘压暗一点，一眼看得出没在转 */
 .music-btn.paused { opacity: .6; }
 
@@ -1654,7 +1682,9 @@ body:not(.gate-up) .music-btn { top: 14px; }
   /* 左侧：合成台。三个东西（两卡槽 ＋ 希望牌）压成一横排，面板高度就只由这一排决定 */
   /* 高度交给内容算。底下原本多垫 54px（怕冒出滚动条），现在两块文字挪进卡槽上下、
      占的地方少了，那点垫高就成了纯空白，收回到和右侧抽屉一样的 18px */
-  .drawer-left .drawer-body { height: auto; padding-bottom: 18px; }
+  /* 底下留 30px：「最重要的一张」那颗标签是按 .hope-card 的绝对定位排的，
+     会探出 206px 高的希望舞台一点点，不额外留白它就正好贴到抽屉下沿（实测只差 3.5px） */
+  .drawer-left .drawer-body { height: auto; padding-bottom: 30px; }
   .drawer-left .drop-zone { gap: 10px; }
   .drawer-left .drop-zone .slot { width: 66px; }
   .drawer-left .ritual-arrow { transform: none; font-size: .9rem; }
@@ -1667,11 +1697,10 @@ body:not(.gate-up) .music-btn { top: 14px; }
 
   /* 右侧：诗篇。高度用 min-height 定一个下限（解锁前后因此一样高，切换时不跳），
      但不写死 —— 万一真实机型上字体换行更多把它顶高了，让它自己长就是，不会冒出滚动条。
-     说明文字与「再读一次」都改成阵两侧的竖排之后（见下），这块只剩下一颗阵，
-     要的高度从 445 掉到 359，下限跟着收到 400 */
+     下限本身怎么算见上面 .drawer 的 --m-sheet（按两种状态里更费空间的那个推） */
   .drawer-right .drawer-body {
     height: auto; min-height: var(--m-sheet);
-    max-height: calc(100vh - var(--m-nav));
+    max-height: calc(var(--vh, 100vh) - var(--m-nav));   /* 同上：别被输入法压矮 */
     justify-content: center;
   }
   /* 阵的尺寸按 --vh（没有键盘时的视口高）算，不直接用 vh ——
@@ -1697,8 +1726,9 @@ body:not(.gate-up) .music-btn { top: 14px; }
   .drawer-right .sec-sub {
     right: 0; writing-mode: vertical-rl;
     white-space: nowrap;              /* 宁可略微溢出，也不折成歪歪扭扭的第二列 */
-    /* 字号跟阵一起缩：阵高 = min(88% 宽, 40vh)，25 个字排下来要正好放得进 */
-    font-size: clamp(8px, 1.4vh, 11.5px); line-height: 1.3; letter-spacing: .02em;
+    /* 字号跟阵一起缩：阵高 = min(88% 宽, --vh × 0.4)，25 个字排下来要正好放得进。
+       这里也得用 --vh 而不是 vh —— 不然输入法一弹、视口一矮，字号就掉到下限 8px 去了 */
+    font-size: clamp(8px, var(--vh, 100vh) * 0.014, 11.5px); line-height: 1.3; letter-spacing: .02em;
   }
   .drawer-right .poem-foot { left: 0; display: flex; align-items: center; }
   /* 按钮也得竖过来，并且收窄：物理宽度 = 行高 ＋ 左右内边距，
