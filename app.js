@@ -477,7 +477,7 @@ function applyFilter() {
     countEl.textContent = `${n} / ${n} 张 · 密语`;
     countEl.classList.add('revealed');
     emptyEl.classList.add('hidden');
-    if (!secretHeard) toast('✦ 我听到了哦 ✦');
+    if (!secretHeard) toast('✦ 我听到了哦 ✦', false, true);   // 第三参：不管抽屉开没开都从下方弹
     secretHeard = true;
     return;
   }
@@ -1066,8 +1066,9 @@ function resetPoem() {
 let toastTimer = null;
 let toastSticky = false;   // 当前这条提示是不是常驻的
 /* sticky=true 时一直挂着，直到 toastHide() —— 卡槽等着接牌时的提示要一直看得见 */
-function toast(msg, sticky) {
+function toast(msg, sticky, fromBottom) {
   toastEl.textContent = msg;
+  toastEl.classList.toggle('from-bottom', !!fromBottom);
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
   toastSticky = !!sticky;
@@ -1607,8 +1608,8 @@ const MUSIC_VOL  = 0.25;    // 背景音乐，压着点，别盖过页面本身
 const MUSIC_FADE = 2400;    // 一遍收尾的淡出时长
 const MUSIC_GAP  = 3600;    // 两遍之间、以及换曲之间的静默
 const MUSIC_CUT  = 1400;    // 换曲时把上一首掐掉的淡出时长
-const MUSIC_DUCK = 0.42;    // 被抽屉蒙住时的音量倍数
-const MUSIC_MUFFLE_HZ = 750;  // 蒙住时的低通截止：只留下闷闷的中低频
+const MUSIC_DUCK = 0.62;    // 被抽屉蒙住时的音量倍数（别压太狠，听出「退后一点」就够）
+const MUSIC_MUFFLE_HZ = 1000; // 蒙住时的低通截止：闷一点，但别闷成一团
 const MUSIC_DUCK_MS   = 460;  // 蒙上/放开的过渡时长
 
 /* 低通这一级只有非 file:// 才挂得上。
@@ -1887,11 +1888,25 @@ function fitSheetFloor() {
    打字时本来也用不着它。
    只管底部这一条：图鉴顶上那个搜索框不参与，聚焦它时按钮照常待着。
    桌面端同样会加这个类，但那条 CSS 只在手机端生效 */
+/* 输入法一弹出来，布局视口就矮一截（head 里的 interactive-widget=resizes-content），
+   而诗篇的阵和抽屉高度都是按视口高算的 —— 于是敲密码时整个牌阵会当场缩水。
+   所以在「没有键盘」的时候把视口高钉进 --vh，键盘开合都不再动排版。
+   键盘正开着时量到的是缩过的值，这时候跳过，保留之前钉的那个 */
+function pinViewportHeight() {
+  if (!isMobile() || document.body.classList.contains('kb-up')) return;
+  document.body.style.setProperty('--vh', document.documentElement.clientHeight + 'px');
+}
+
 function bindKeyboardGuard() {
-  const inp = $('#search-m');
-  if (!inp) return;
-  inp.addEventListener('focus', () => document.body.classList.add('kb-up'));
-  inp.addEventListener('blur',  () => document.body.classList.remove('kb-up'));
+  // 用委托而不是直接绑：诗篇那 12 个密码格是 buildLock() 之后才生成的，直接绑绑不到。
+  // focusin/focusout 会冒泡（focus/blur 不会），所以挂一层就够
+  const hit = t => !!(t && t.closest && t.closest('#search-m, #lock-grid'));
+  document.addEventListener('focusin',  e => { if (hit(e.target)) document.body.classList.add('kb-up'); });
+  document.addEventListener('focusout', e => {
+    if (!hit(e.target)) return;
+    document.body.classList.remove('kb-up');
+    pinViewportHeight();          // 键盘收了，重新量一次视口高
+  });
 }
 
 /* 圆钮落位：电脑端横向对齐图鉴左边界，手机端交给 CSS。
@@ -1979,6 +1994,7 @@ function init() {
     musicBtn.addEventListener('click', musicToggle);
     window.addEventListener('resize', placeMusicButton);
     window.addEventListener('resize', fitSheetFloor);
+    window.addEventListener('resize', pinViewportHeight);
     musicPlay($('#gate') ? 'gate' : mode);
   }
   // 右侧抽屉的诗篇密码，与主密码门各自独立
@@ -1994,6 +2010,7 @@ function init() {
   // 图鉴排好版才量得准圆钮该贴在哪条线上
   placeMusicButton();
   fitSheetFloor();
+  pinViewportHeight();
 }
 
 init();

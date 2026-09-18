@@ -1574,8 +1574,9 @@ body:not(.gate-up) .music-btn { top: 14px; }
        阵随视口缩，所以这两个数也跟着缩，没有一个放之四海皆准的定值。
        末尾那项是横屏兜底：按宽算出来的可能比屏幕还高。
        这里是下限不是定高，内容真超了它会自己长 */
-    --m-sheet: min(max(var(--m-sheet-floor, 280px), calc(min(0.88 * (100vw - 28px), 40vh) + 46px)),
-                   calc(100vh - var(--m-nav)));
+    --m-sheet: min(max(var(--m-sheet-floor, 280px),
+                       calc(min(0.88 * (100vw - 28px), var(--vh, 100vh) * 0.4) + 46px)),
+                   calc(var(--vh, 100vh) - var(--m-nav)));
     width: 100vw !important;
     transform: none !important;    /* 桌面那套左右滑入作废 */
     pointer-events: none;          /* 抽屉本身不挡页面；只有把手和面板接事件 */
@@ -1621,9 +1622,26 @@ body:not(.gate-up) .music-btn { top: 14px; }
   /* 收起的抽屉里没有东西该接事件 */
   body:not(.picking) .drawer:not(.open) .slot { pointer-events: none; }
 
-  /* 「无与爱，诞生希望」挪到「搜寻…」上面并居中；用 order 调，不动 HTML（桌面端不能受影响） */
-  .drawer-left #special { display: flex; flex-direction: column; }
-  .drawer-left .motto { order: -1; margin: 0 0 8px; text-align: center; }
+  /* 两块说明文字夹住两个卡槽：「搜寻…」在卡槽正上方、「无与爱…」在正下方，
+     都对齐落点区那一列的中心线。
+     做法是让 .ritual 用 display:contents 把自己「拆掉」—— 里面的落点区/箭头/希望舞台
+     直接成为 #special 网格的子项，两条文字才放得进落点区所在的那一列。
+     希望舞台跨满三行，整块高度还是它说了算，两条文字就落在它上下的空隙里，
+     于是抽屉比原来（两行字独占顶部）矮一截。HTML 不动，桌面端完全不受影响 */
+  .drawer-left #special {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    justify-content: center; align-items: center;
+    column-gap: 10px;
+  }
+  .drawer-left .ritual { display: contents; }
+  /* nowrap：窄机上这一列会被挤到放不下一行，宁可让它略微溢出（居中溢出，两边各几像素），
+     也不要折成两行把抽屉撑高 */
+  .drawer-left .sec-sub      { grid-area: 1 / 1; margin: 0 0 6px; white-space: nowrap; }
+  .drawer-left .drop-zone    { grid-area: 2 / 1; }
+  .drawer-left .ritual-arrow { grid-area: 2 / 2; }
+  .drawer-left .hope-stage   { grid-area: 1 / 3 / 4 / 4; }
+  .drawer-left .motto        { grid-area: 3 / 1; margin: 6px 0 0; text-align: center; }
 
   /* 「希望」与「The Hope」并作一行，中间用 • 隔开。
      说明文字允许比卡面宽：卡面只有 62px，不放宽这行必然折行 */
@@ -1634,11 +1652,9 @@ body:not(.gate-up) .music-btn { top: 14px; }
   .drawer-left .hope-tag { font-size: .58rem; white-space: nowrap; }
 
   /* 左侧：合成台。三个东西（两卡槽 ＋ 希望牌）压成一横排，面板高度就只由这一排决定 */
-  .drawer-left .drawer-body { height: auto; padding-bottom: 54px; }   /* 多留一点，免得底部冒出滚动条 */
-  .drawer-left .ritual {
-    flex-direction: row; align-items: center; justify-content: center;
-    gap: 10px; margin-top: 10px;
-  }
+  /* 高度交给内容算。底下原本多垫 54px（怕冒出滚动条），现在两块文字挪进卡槽上下、
+     占的地方少了，那点垫高就成了纯空白，收回到和右侧抽屉一样的 18px */
+  .drawer-left .drawer-body { height: auto; padding-bottom: 18px; }
   .drawer-left .drop-zone { gap: 10px; }
   .drawer-left .drop-zone .slot { width: 66px; }
   .drawer-left .ritual-arrow { transform: none; font-size: .9rem; }
@@ -1647,7 +1663,7 @@ body:not(.gate-up) .music-btn { top: 14px; }
   .drawer-left .hope-stage { width: 102px; height: 206px; --face-w: 62px; --ring-w: 160px; }
   .drawer-left .hope-caption h3 { font-size: .74rem; }
   .drawer-left .hope-caption p { font-size: .56rem; }
-  .drawer-left .motto { margin-top: 8px; font-size: .66rem; }
+  .drawer-left .motto { font-size: .66rem; }
 
   /* 右侧：诗篇。高度用 min-height 定一个下限（解锁前后因此一样高，切换时不跳），
      但不写死 —— 万一真实机型上字体换行更多把它顶高了，让它自己长就是，不会冒出滚动条。
@@ -1658,7 +1674,10 @@ body:not(.gate-up) .music-btn { top: 14px; }
     max-height: calc(100vh - var(--m-nav));
     justify-content: center;
   }
-  .drawer-right .poem-circle { width: min(88%, 40vh); margin-top: 8px; }
+  /* 阵的尺寸按 --vh（没有键盘时的视口高）算，不直接用 vh ——
+     否则一敲密码、输入法把布局视口压矮，整个阵和字都会当场缩水。
+     --vh 由 pinViewportHeight() 维护 */
+  .drawer-right .poem-circle { width: min(88%, var(--vh, 100vh) * 0.4); margin-top: 8px; }
 
   /* ---------- 诗篇两侧的竖排 ----------
      「或许…」搬到阵的右侧、「再读一次」搬到左侧，两块都脱离文档流，
@@ -1729,6 +1748,13 @@ body:not(.gate-up) .music-btn { top: 14px; }
     transform: translate(-50%, -14px);
   }
   body.dock-open .toast.show { transform: translate(-50%, 0); }
+  /* 密语那条例外：不管抽屉开没开，一律从下方弹 ——
+     在底部那条搜索框里输和在图鉴顶上那个框里输，观感保持一致 */
+  body.dock-open .toast.from-bottom {
+    top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 14px);
+  }
+  body.dock-open .toast.from-bottom.show { transform: translate(-50%, 0); }
 
   /* 点搜索框弹出输入法时，视口跟着缩（见 head 里的 interactive-widget=resizes-content），
      贴着底部的转化按钮会被顶到半空。打字时本来也用不着它，聚焦期间先收起来 ——
