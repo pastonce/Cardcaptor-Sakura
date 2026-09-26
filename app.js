@@ -8,8 +8,8 @@
 const ASSETS     = './asserts/';                       // 所有卡图统一放在 asserts 目录下
 const CLOW_DIR   = ASSETS + 'clow/';
 const SAKURA_DIR = ASSETS + 'sakura/';
-const C_BACK     = ASSETS + 'ClowCardSideB.jpeg';    // 库洛牌统一卡背
-const S_BACK     = ASSETS + 'SakuraCardSideB.jpeg';  // 小樱牌统一卡背
+const C_BACK     = ASSETS + 'ClowCardSideB.webp';    // 库洛牌统一卡背
+const S_BACK     = ASSETS + 'SakuraCardSideB.webp';  // 小樱牌统一卡背
 
 /* 魔法阵素材见 magic-circle.css：头部、诗篇、合成台、单张转化四处都改用
    同一份图片线稿（底色 + mask），不再手描 SVG */
@@ -164,19 +164,19 @@ const PAST_NOTES = {
    两张都拖进卡槽 → 合成最重要的「希望」。 */
 const SPECIAL = {
   nothing: {
-    key: 'nothing', cn: '无', en: 'The Nothing', img: ASSETS + 'CNothing.jpeg', side: 'clow',
+    key: 'nothing', cn: '无', en: 'The Nothing', img: ASSETS + 'CNothing.webp', side: 'clow',
     frame: 'clow',                                  // 描边固定为库洛黄
     terms: ['无', 'the nothing', 'nothing'],
     desc: '尚未写上名字的库洛牌，安静地等待着被唤醒。',
   },
   love: {
-    key: 'love', cn: '爱', en: 'The Love', img: ASSETS + 'SUnknown.jpeg', side: 'sakura',
+    key: 'love', cn: '爱', en: 'The Love', img: ASSETS + 'SUnknown.webp', side: 'sakura',
     frame: 'sakura',                                // 描边固定为小樱粉
     terms: ['爱', '心', 'the love', 'the heart', 'love', 'heart'],
     desc: '由小樱的心意与泪水孕育而生的无名之牌。',
   },
   hope: {
-    key: 'hope', cn: '希望', en: 'The Hope', img: ASSETS + 'SHope.jpeg', side: 'sakura',
+    key: 'hope', cn: '希望', en: 'The Hope', img: ASSETS + 'SHope.webp', side: 'sakura',
     frame: 'hope',                                  // 描边固定为希望红
     desc: '「无」与「爱」合而为一，由最深的感情诞生的、最重要的一张牌。',
   },
@@ -186,12 +186,12 @@ const SPECIAL_ORDER = ['nothing', 'love'];   // 需要凑齐的两张
 /* 合成前后，希望牌的两种呈现：未诞生时它只是一张「未知」的牌 */
 const HOPE_FACE = {
   locked: {
-    img: ASSETS + 'SHope-uncreated.jpeg', cn: '◼◼', en: 'The ◼◼◼◼',
+    img: ASSETS + 'SHope-uncreated.webp', cn: '◼◼', en: 'The ◼◼◼◼',
     desc: '◼◼◼◼◼◼◼◼◼◼', tag: '✦ ◼◼◼◼◼◼ ✦',
     title: '✦ ◼◼之牌 ✦', motto: '◼◼',
   },
   revealed: {
-    img: ASSETS + 'SHope.jpeg', cn: '希望', en: 'The Hope',
+    img: ASSETS + 'SHope.webp', cn: '希望', en: 'The Hope',
     desc: '由最深的感情诞生之牌', tag: '✦ 最重要的一张 ✦',
     title: '✦ 希望之牌 ✦', motto: '希望',
   },
@@ -309,8 +309,8 @@ function specialData(sp) {
 function pairData(card) {
   return {
     cn: card.cn, en: 'The ' + card.en, morphable: true,
-    clowSrc:   CLOW_DIR + 'C' + card.en + '.jpeg',
-    sakuraSrc: SAKURA_DIR + 'S' + card.en + '.jpeg',
+    clowSrc:   CLOW_DIR + 'C' + card.en + '.webp',
+    sakuraSrc: SAKURA_DIR + 'S' + card.en + '.webp',
     descClow:   '封印着古老力量的库洛牌，安静地沉睡着。',
     descSakura: '由小樱重新唤醒的小樱牌，焕发着新的光芒。',
     sym: SYMBOLS[card.en] || '',
@@ -325,8 +325,8 @@ function buildGrid() {
   const frag = document.createDocumentFragment();
 
   CARDS.forEach((card, i) => {
-    const clowSrc   = CLOW_DIR + 'C' + card.en + '.jpeg';
-    const sakuraSrc = SAKURA_DIR + 'S' + card.en + '.jpeg';
+    const clowSrc   = CLOW_DIR + 'C' + card.en + '.webp';
+    const sakuraSrc = SAKURA_DIR + 'S' + card.en + '.webp';
     const el = document.createElement('article');
     el.className = 'card';
     el._card = card;

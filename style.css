@@ -14,7 +14,7 @@
   /* 三张特殊牌的固定色：不随主题切换而改变 */
   --clow-gold:   #e8c76a;   /* 库洛黄 —— 无 */
   --sakura-pink: #cf5c8b;   /* 小樱粉 —— 爱 */
-  /* 希望红：取自 SHope.jpeg 心形平涂处（实测 #B9232F），为兼顾夜色主题下的可读性略作提亮 */
+  /* 希望红：取自 SHope 素材心形平涂处（实测 #B9232F），为兼顾夜色主题下的可读性略作提亮 */
   --hope-red:    #c62a3a;
 }
 
@@ -150,12 +150,12 @@ body.no-scroll { overflow: hidden; }
      而视口比例通常窄于海报的 1.9264，此时整幅画面高度是完整可见的 ——
      所以密码框用视口百分比定位，就等同于压在海报的同一处 */
   background-color: #0a0708;
-  background-image: url('./asserts/Dantalian-light.jpeg');
+  background-image: url('./asserts/Dantalian-light.webp');
   background-size: cover;
   background-position: center;
   transition: opacity .9s ease, visibility .9s ease;
 }
-body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.jpeg'); }
+body[data-mode="clow"] .gate { background-image: url('./asserts/Dantalian-dark.webp'); }
 .gate.done { opacity: 0; visibility: hidden; pointer-events: none; }
 
 /* 密码框的纵向落位（坐标均为裁切后海报的像素）：
@@ -588,7 +588,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
   height: min(48%, 460px);
   aspect-ratio: 666 / 900;
   transform: translate(-50%, -50%);
-  background: url('./asserts/lock.png') center / contain no-repeat;
+  background: url('./asserts/lock.webp') center / contain no-repeat;
   opacity: .24; pointer-events: none;
   transition: opacity .9s ease, filter .9s ease, transform 1.1s ease;
 }
@@ -627,7 +627,7 @@ body.dragging .drawer-body { box-shadow: 0 0 0 1px var(--mode-color), 0 0 26px v
 }
 .lock-key-body {
   width: 100%; height: 100%;
-  background: url('./asserts/key.png') center / contain no-repeat;
+  background: url('./asserts/key.webp') center / contain no-repeat;
   transform-origin: 50% 100%;                  /* 绕尖端这根竖轴转，即「插在锁孔里拧」 */
   filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .55));
 }
