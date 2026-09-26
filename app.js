@@ -1217,7 +1217,7 @@ function flashScreen(hold, origin) {
    ============================================================ */
 const GATE_LEVELS = [
   { len: 2, question: '最喜欢的两个数字？', ok: '还有第二关！？',
-    hash: '6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918' },
+    hash: '6f4b6612125fb3a0daecd2799dfd6c9c299424fd920f9b308110a2c1fbd8f443' },
   { len: 4, question: '最让人想说“私、気になります！”的四个数字？', ok: '好奇心，值得被嘉奖哦~',
     hash: '216da54b5931a6d37cca8e29953361fe02c680bbd8b482343f508e32e8e9cc3b' },
 ];
