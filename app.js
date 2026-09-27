@@ -118,8 +118,8 @@ const PAST_NOTES = {
   Mist:     '🌸看起来可能大概也许是硫酸雾x',   // 雾
   Storm:    '☯️最速被收服の纪录保持者',   // 岚
   Float:    '🌸F浮 = ρ液 × V排 × g',   // 浮
-  Erase:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 消
-  Glow:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 灯
+  Erase:    '🌸这橡皮真是概念神吧，把樱狼之间的隔阂也抹消了一些',   // 消
+  Glow:     '🌸美，好美啊，简直太漂亮了（就是差点让小樱表白了',   // 灯
   Move:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 移
   Fight:    '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 斗
   Loop:     '◼揭示◼◼之◼时◼◼◼◼◼还未◼到◼◼',   // 轮
@@ -1604,10 +1604,16 @@ const MUSIC = {
   gate:   { src: ASSETS + 'music/Cras numquam scire.mp3', name: 'Cras numquam scire' },
   clow:   { src: ASSETS + 'music/夜の歌.mp3',             name: '夜の歌' },
   sakura: { src: ASSETS + 'music/さくらのテーマ2.mp3',     name: 'さくらのテーマ2' },
-  // 诗篇完全揭晓之后固定的那一首，不跟卡组走。
-  // skip：这首开头有两秒死静音，起播时直接跳过，不然「歌还没响」的空档白占时间
-  heart:  { src: ASSETS + 'music/心に静寂と平和を.mp3',      name: '心に静寂と平和を', skip: 2 },
 };
+
+/* 揭晓诗篇之后用的曲库：每次揭晓随机起一首，之后按同一套随机顺序往下轮，
+   四首放完重新洗牌。skip 是曲子开头那段死静音，起播和每轮循环都跳过它 */
+const HEART_TRACKS = [
+  { src: ASSETS + 'music/心に静寂と平和を.mp3',                             name: '心に静寂と平和を', skip: 2 },
+  { src: ASSETS + 'music/夏を見ていた.mp3',                                 name: '夏を見ていた' },
+  { src: ASSETS + 'music/失恋ソング沢山聴いて 泣いてばかりの私はもう。.mp3', name: '失恋ソング沢山聴いて 泣いてばかりの私はもう。' },
+  { src: ASSETS + 'music/河原のたまこともち蔵.mp3',                         name: '河原のたまこともち蔵' },
+];
 const MUSIC_VOL  = 0.25;    // 背景音乐，压着点，别盖过页面本身
 const MUSIC_FADE = 2400;    // 一遍收尾的淡出时长
 const MUSIC_GAP  = 3600;    // 两遍之间、以及换曲之间的静默
@@ -1630,7 +1636,10 @@ let musicFadeTimer = null;
 let musicUnmuteArmed = false;   // 静音起播中，等第一次动手把静音解开
 let musicPlayArmed  = false;    // 连静音起播都没成的兜底：等第一次动手再放
 let musicDucked = false;        // 抽屉开着：当前是否处于「蒙住」状态
-let musicHeart  = false;        // 诗篇完全揭晓后置位：曲子锁定成那一首，也不再蒙住
+let musicHeart  = false;        // 诗篇完全揭晓后置位：改放 HEART_TRACKS 里的曲子，也不再蒙住
+let heartOrder  = [];           // 本轮四首的随机顺序
+let heartAt     = 0;            // 放到第几首了
+let musicNow    = null;         // 当前这一首的 { src, name, skip }
 let musicCtx = null;            // Web Audio 上下文（挂低通用）
 let musicFilter = null;         // 那一级低通
 
@@ -1671,7 +1680,7 @@ function musicRefreshBtn() {
   musicBtn.classList.toggle('playing', !musicPaused && !!musicKey);
   musicBtn.classList.toggle('paused', musicPaused);
   const label = musicKey
-    ? MUSIC[musicKey].name + (musicPaused ? ' · 已暂停，点击继续' : ' · 点击暂停')
+    ? (musicNow ? musicNow.name : '') + (musicPaused ? ' · 已暂停，点击继续' : ' · 点击暂停')
     : '背景音乐';
   musicBtn.title = label;
   musicBtn.setAttribute('aria-label', label);
@@ -1781,6 +1790,8 @@ function musicSchedule(el) {
       el.pause();
       musicLater(MUSIC_GAP, () => {
         if (el !== musicEl || musicPaused) return;
+        // 红心态：这一首放完就轮到下一首（musicNow 清掉，musicPlay 会自己去取下一首）
+        if (musicKey === 'heart') { musicNow = null; musicPlay('heart'); return; }
         el.currentTime = musicSkipOf(el);
         el.volume = musicBaseVol();
         el.play().then(() => { if (el === musicEl) musicSchedule(el); }).catch(musicArmPlay);
@@ -1796,8 +1807,11 @@ function musicPlay(key) {
   musicClearTimers();
   if (musicEl) { try { musicEl.pause(); } catch (e) {} musicEl = null; }
   if (musicPaused) return;
-  const el = new Audio(MUSIC[key].src);
-  el._key = key;                                  // 记下是哪一首，继续播放时核对
+  // 红心态取本轮随机顺序里的那一首（musicNextHeart 已经放好），其余直接查表
+  musicNow = key === 'heart' ? (musicNow || musicNextHeart()) : MUSIC[key];
+  const el = new Audio(musicNow.src);
+  el._key  = key;                                 // 记下是哪一态，继续播放时核对
+  el._skip = musicNow.skip || 0;                  // 开头要跳过的静音秒数
   el.volume = musicBaseVol();
   el.preload = 'auto';
   musicEl = el;
@@ -1810,11 +1824,26 @@ function musicPlay(key) {
   musicAutoplay(el, () => { if (el === musicEl) musicSchedule(el); });
 }
 
-/* 这一首该从第几秒起播：绝大多数是 0，个别曲子开头挂着一段死静音（见 MUSIC.heart.skip）。
-   循环重起时同样跳过，不然每转一圈都要白等一次 */
-const musicSkipOf = el => (MUSIC[el._key] && MUSIC[el._key].skip) || 0;
+/* 这一首该从第几秒起播：绝大多数是 0，个别曲子开头挂着一段死静音（见 HEART_TRACKS 的 skip）。
+   循环重起时同样跳过，不然每转一圈都要白等一次。
+   值记在元素自己身上 —— 红心态的曲子不在 MUSIC 表里，按 key 反查是查不到的 */
+const musicSkipOf = el => el._skip || 0;
 
 /* 换曲：上一首淡出 → 静默一段 → 新曲子起来 */
+/* 从本轮的随机顺序里取下一首；取完就重新洗牌开下一轮 */
+function musicNextHeart() {
+  if (heartAt >= heartOrder.length) {
+    heartOrder = HEART_TRACKS.slice();
+    for (let i = heartOrder.length - 1; i > 0; i--) {        // Fisher-Yates
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = heartOrder[i]; heartOrder[i] = heartOrder[j]; heartOrder[j] = t;
+    }
+    heartAt = 0;
+  }
+  musicNow = heartOrder[heartAt++];
+  return musicNow;
+}
+
 /* 丢掉手上这个 <audio>（暂停、断开图节点）。换曲、暂停中换曲都走它 */
 function musicDrop() {
   const el = musicEl;
@@ -1956,6 +1985,8 @@ function heartTransform() {
 function enterHeart() {
   if (musicHeart || !musicBtn) return;
   musicHeart = true;
+  heartOrder = []; heartAt = 0;        // 每次揭晓都重新洗牌
+  musicNextHeart();
   heartTransform();
   musicSyncDuck();          // 万一此刻正被抽屉蒙着，立刻放开
   /* 换曲节奏按揭晓动画排：「今夜我爱你」五个字是 0/.14/.28/.42/.56s 依次现身、
