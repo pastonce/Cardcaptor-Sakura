@@ -1326,7 +1326,7 @@ function gateUnlock() {
 
    改密码：控制台执行 gateHash('新密码') 得到摘要，替换下面这行。
    ============================================================ */
-const LOCK_HASH = '6211d35bd333a369f41a5a6bc1393c12db16c1b355fb4b7d499352f6bd28d45c';
+const LOCK_HASH = 'b8cb0038746176052f8f15c8d9b4b21292a76ec9a05d44beab47f87f9a2011bf';
 const LOCK_COLS = 6;                    // 每行 6 位，两行共 12 位
 const LOCK_LINE_STEP = 140;             // 竖排文字：每个字之间差这么久
 const LOCK_LINE_GAP  = 700;             // 竖排文字：两列之间差这么久（≈ 5 × STEP）
